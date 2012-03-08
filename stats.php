@@ -87,6 +87,7 @@ function parseParams(&$input) {
 				$allParams[$sType] = $sArg; // Tore
 			} else {
 				$fehler = TRUE;
+				return false;
 			}
 			break;
 		case 'art':
@@ -95,7 +96,7 @@ function parseParams(&$input) {
 			foreach($aArt as $ArtPruef) {
 				if (! in_array($ArtPruef, $allowedArt)) {
 					$fehler = TRUE;
-					break;
+					return false;
 				}
 			}
 			break;
@@ -103,6 +104,7 @@ function parseParams(&$input) {
 		}
 		if ($fehler) {
 			print 'Fehler in den Parametern.';
+			return false;
 		}
 	}
 	// do not return anything - this function modifies a global variable
