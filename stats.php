@@ -40,11 +40,11 @@ function wfStats() {
 
 // Parses parameters given to extension
 function parseParams(&$input) {
-	global $aArt;
-	global $allParams;
-	global $fehler;
+	global $uwr_stats_aArt;
+	global $uwr_stats_allParams;
+	global $uwr_stats_fehler;
 	
-	$fehler = FALSE;
+	$uwr_stats_fehler = FALSE;
 
 	// get input args
 	$aParams = explode("\n", $input); // ie 'website=http://www.whatever.com'
@@ -62,19 +62,19 @@ function parseParams(&$input) {
 		case 'ende':
 			// clean up
 			if (FALSE !== date_create($sArg)) {
-				$allParams[$sType] = $sArg; // 2012
+				$uwr_stats_allParams[$sType] = $sArg; // 2012
 			}
 			break;
 		case 'name':
 			if ($sArg != "Gesamt") {
 				// see if column for player exists
 				$res = mysql_query('DESCRIBE `stats_games`');
-				$fehler = TRUE;
+				$uwr_stats_fehler = TRUE;
 				mysql_data_seek($res, 9);
 				while($row = mysql_fetch_array($res)) {
 					if ($sArg == $row['Field']) { // Nik
-						$allParams[$sType] = $sArg;
-						$fehler = FALSE;
+						$uwr_stats_allParams[$sType] = $sArg;
+						$uwr_stats_fehler = FALSE;
 					}
 				}    
 			}
@@ -84,25 +84,25 @@ function parseParams(&$input) {
 								'Gewonnen', 'Verloren', 'Unentschieden',
 								'SerieG', 'SerieV');
 			if (in_array($sArg, $allowedTarget)) {
-				$allParams[$sType] = $sArg; // Tore
+				$uwr_stats_allParams[$sType] = $sArg; // Tore
 			} else {
-				$fehler = TRUE;
+				$uwr_stats_fehler = TRUE;
 				return false;
 			}
 			break;
 		case 'art':
 			$allowedArt = array('BUL', 'CC', 'DM');
-			$aArt = explode("+", $sArg);
-			foreach($aArt as $ArtPruef) {
+			$uwr_stats_aArt = explode("+", $sArg);
+			foreach($uwr_stats_aArt as $ArtPruef) {
 				if (! in_array($ArtPruef, $allowedArt)) {
-					$fehler = TRUE;
+					$uwr_stats_fehler = TRUE;
 					return false;
 				}
 			}
 			break;
 
 		}
-		if ($fehler) {
+		if ($uwr_stats_fehler) {
 			print 'Fehler in den Parametern.';
 			return false;
 		}
@@ -112,19 +112,19 @@ function parseParams(&$input) {
 
 // Build an SQL condition based on the parameters
 function build_filter($from, $to) {
-	global $aArt;
+	global $uwr_stats_aArt;
 
 	// date range
 	$filter = "(`Datum` BETWEEN '".$from."' AND '".$to."')";
 
 	// filter by tournament-type
-	if (isset($aArt) && count($aArt) > 0) {
+	if (isset($uwr_stats_aArt) && count($uwr_stats_aArt) > 0) {
 		$filter .= " AND (`Art`='"
-					. implode("' OR `Art`='", $aArt)
+					. implode("' OR `Art`='", $uwr_stats_aArt)
 					. "') ";
 		/*
 		$Merker = FALSE;
-		foreach($aArt as $ArtPruef) {
+		foreach($uwr_stats_aArt as $ArtPruef) {
 			if (! $Merker) {
 				$filter .= " AND (`Art`='".$ArtPruef."'";
 				$Merker = TRUE;
@@ -241,57 +241,64 @@ function getNumGUV($GUV, $filter) {
 
 // the callback function for converting the input text to HTML output
 function uwr_stats($input) {
+	global $uwr_stats_aArt;
+	global $uwr_stats_allParams;
+	global $uwr_stats_fehler;
+
 	// set default arguments
-	$allParams = array(
+	$uwr_stats_allParams = array(
 		'start'  => "",
 		'ende'   => "",
 		'name'   => "Gesamt",
 		'target' => "",
 		);
-	$aArt = array();
-	$fehler = FALSE;
+	$uwr_stats_aArt = array();
+	$uwr_stats_fehler = FALSE;
 	$output = "";
 	
 	// parse and check parameters
 	parseParams($input);
-	// target nicht gesetzt
-	if ('' == $allParams['target'] && "Gesamt" == $allParams['name']) {
-		$fehler = TRUE;
+	if ($uwr_stats_fehler) {
+		return "Fehlerhafte Parameter (1)";
 	}
-	if ($fehler) {
-		return "Fehlerhafte Parameter";
+	// target nicht gesetzt
+	if ('' == $uwr_stats_allParams['target'] && "Gesamt" == $uwr_stats_allParams['name']) {
+		$uwr_stats_fehler = TRUE;
+	}
+	if ($uwr_stats_fehler) {
+		return $uwr_stats_allParams['name']. "Fehlerhafte Parameter (2)";
 	}
 
 	// ``start'' nicht gesetzt (auf unendlich setzen)
-	if ('' == $allParams['start']) {
-		$allParams['start'] = "1900-01-01";
-		$allParams['ende']  = "2200-01-01";
+	if ('' == $uwr_stats_allParams['start']) {
+		$uwr_stats_allParams['start'] = "1900-01-01";
+		$uwr_stats_allParams['ende']  = "2200-01-01";
 	}
-	$DateA=date_create($allParams['start']);
+	$DateA=date_create($uwr_stats_allParams['start']);
 	// ``ende'' nicht eintegragen (auf ``start'' +1 Jahr setzen)
-	if ('' == $allParams['ende']) {
-		$allParams['ende'] = $DateA->format('d.m') . "." . ($DateA->format('Y')+1);
+	if ('' == $uwr_stats_allParams['ende']) {
+		$uwr_stats_allParams['ende'] = $DateA->format('d.m') . "." . ($DateA->format('Y')+1);
 	}
-	$DateE=date_create($allParams['ende']);
+	$DateE=date_create($uwr_stats_allParams['ende']);
 
 	$SuchString = build_filter($DateA->format('Y-m-d'), $DateE->format('Y-m-d'));
 
 	// build output
-	if ("Gesamt" != $allParams['name']) {
+	if ("Gesamt" != $uwr_stats_allParams['name']) {
 		// TODO: add support for list of players
 		// single player stats
-		$output = getNumGoalsForPlayer($allParams['name'], $SuchString);
+		$output = getNumGoalsForPlayer($uwr_stats_allParams['name'], $SuchString);
 	} else { // Gesamt != name
 		// whole team stats
-		switch ($allParams['target']) {
+		switch ($uwr_stats_allParams['target']) {
 		case 'Tore':
 		case 'Gegentore':
-			$output = getNumGoals($allParams['target'], $SuchString);
+			$output = getNumGoals($uwr_stats_allParams['target'], $SuchString);
 			break;
 		case 'Gewonnen':
 		case 'Unentschieden':
 		case 'Verloren':
-			$output = getNumGUV($allParams['target'], $SuchString);
+			$output = getNumGUV($uwr_stats_allParams['target'], $SuchString);
 			break;
 		case 'SerieG':
 			$output = getSeriesWon($SuchString);
@@ -302,7 +309,7 @@ function uwr_stats($input) {
 		}
 	}
 
-	//$output = mysql_num_rows($sqlres)." : ".$allParams['name']." : ".$allParams['target'];
+	//$output = mysql_num_rows($sqlres)." : ".$uwr_stats_allParams['name']." : ".$uwr_stats_allParams['target'];
 
 	// return the output
 	return $output;
