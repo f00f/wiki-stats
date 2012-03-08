@@ -235,7 +235,7 @@ function getNumGUV($GUV, $filter) {
 	$op = $ops[ $GUV{0} ]; // consider only first char
 	$sqlres = mysql_query("SELECT COUNT(`ID`) AS 'COUNT' FROM `stats_games` "
 						. "WHERE `Tore` {$op} `Gegentore` AND {$filter}");
-	$row = mysql_fetch_assoc($sqlres));
+	$row = mysql_fetch_assoc($sqlres);
 	return $row['COUNT'];
 }
 
@@ -243,10 +243,10 @@ function getNumGUV($GUV, $filter) {
 function uwr_stats($input) {
 	// set default arguments
 	$allParams = array(
-		'start'  = "",
-		'ende'   = "",
-		'name'   = "Gesamt",
-		'target' = "",
+		'start'  => "",
+		'ende'   => "",
+		'name'   => "Gesamt",
+		'target' => "",
 		);
 	$aArt = array();
 	$fehler = FALSE;
