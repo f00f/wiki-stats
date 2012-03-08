@@ -38,7 +38,7 @@ function wfStats() {
 	$wgParser->setHook( "stats", "uwr_stats" );
 }
 
-// Parses parameters to extension
+// Parses parameters given to extension
 function parseParams(&$input) {
 	global $aArt;
 	global $allParams;
@@ -126,14 +126,14 @@ function build_filter($from, $to) {
 		$Merker = FALSE;
 		foreach($aArt as $ArtPruef) {
 			if (! $Merker) {
-				$SuchString = $SuchString . " AND (`Art`='".$ArtPruef."'";
+				$filter .= " AND (`Art`='".$ArtPruef."'";
 				$Merker = TRUE;
 			} else {
-				$SuchString = $SuchString . " OR `Art`='".$ArtPruef."'";
+				$filter .= " OR `Art`='".$ArtPruef."'";
 			}
 		}
 		if ($Merker) {
-			$SuchString=$SuchString.") ";
+			$filter .= ") ";
 		}
 		*/
 	}
@@ -146,7 +146,8 @@ function build_filter($from, $to) {
 // type - "Tore" or "Gegentore"
 function getNumGoals($type, $filter) {
 	$sum = 0;
-	$sqlres = mysql_query("SELECT `{$type}` FROM `stats_games` WHERE ".$filter);
+	// TODO: geht "SELECT SUM(`{$type}`) AS 'SUM' FROM `stats_games` WHERE {$filter}"
+	$sqlres = mysql_query("SELECT `{$type}` FROM `stats_games` WHERE {$filter}");
 	while ($row = mysql_fetch_assoc($sqlres)) {
 		$sum += $row[ $type ];
 	}
@@ -210,7 +211,7 @@ function getSeriesLost($filter) {
 // filter - SQL condition to filter stats table
 function getNumGoalsForPlayer($player, $filter) {
 	$ret = 0;
-	// TODO: geht "SELEECT SUM(`{$player}`) FROM `stats_games` WHERE {$filter} AND `$player` <> 255"
+	// TODO: geht "SELECT SUM(`{$player}`) FROM `stats_games` WHERE `{$player}` <> 255 AND {$filter}"
 	$sqlres = mysql_query("SELECT * FROM `stats_games` WHERE {$filter}");
 	$Merker = FALSE;
 	while ($sqlobj =  mysql_fetch_object($sqlres)) {
@@ -230,18 +231,8 @@ function getNumGoalsForPlayer($player, $filter) {
 // GUV - [GUV]
 // filter - SQL condition to filter stats table
 function getNumGUV($GUV, $filter) {
-	// consider only first char
-	switch ($GUV{0}) {
-	case 'G':
-		$op = '>';
-		break;
-	case 'U':
-		$op = '=';
-		break;
-	case 'V':
-		$op = '<';
-		break;		
-	}
+	$ops = array('G' => '>', 'U' => '=', 'V' => '<');
+	$op = $ops[ $GUV{0} ]; // consider only first char
 	$sqlres = mysql_query("SELECT COUNT(`ID`) AS 'COUNT' FROM `stats_games` "
 						. "WHERE `Tore` {$op} `Gegentore` AND {$filter}");
 	$row = mysql_fetch_assoc($sqlres));
@@ -256,7 +247,7 @@ function uwr_stats($input) {
 		'ende'   = "",
 		'name'   = "Gesamt",
 		'target' = "",
-		};
+		);
 	$aArt = array();
 	$fehler = FALSE;
 	$output = "";
