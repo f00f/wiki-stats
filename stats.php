@@ -15,7 +15,7 @@
  *       Moegliche Werte:
  *       "Gesamt" [default] - fuer die ganze Mannschaft (``target'' erforderlich)
  *       Spielername - nur dieser Spieler
- *       Liste von Namen - (noch nicht unterstuetzt) diese Spieler (z.B. fuer Torschuetzenlisten)
+ *       Liste von Namen - diese Spieler (z.B. fuer Torschuetzenlisten)
  * target - was soll angezeigt werden?
  *       Moegliche Werte: "Gewonnen", "Verloren", "Unentschieden",
  *                        "Tore", "Gegentore", "SerieG", "SerieV"
@@ -240,25 +240,38 @@ function getSeriesLost($filter) {
 // player - player name
 // filter - SQL condition to filter stats table
 function getNumGoalsForPlayer($player, $filter) {
-	$ret = 0;
-	// TODO: geht "SELECT SUM(`{$player}`) FROM `stats_games` WHERE `{$player}` <> 255 AND {$filter}"
+	$sqlres = mysql_query("SELECT COUNT(`ID`) AS 'COUNT', SUM(`{$player}`) AS 'SUM' FROM `stats_games` "
+						. "WHERE `{$player}` <> 255 AND {$filter}");
+	if (mysql_num_rows($sqlres) < 1) {
+		return "-";
+	}
+	$row = mysql_fetch_assoc($sqlres);
+	if ($row['COUNT'] < 1) {
+		return "-";
+	}
+	return $row['SUM'];
+	/*
+	// old implementation
+	$sum = 0;
 	$sqlres = mysql_query("SELECT * FROM `stats_games` WHERE {$filter}");
 	$Merker = FALSE;
-	while ($sqlobj =  mysql_fetch_object($sqlres)) {
+	while ($sqlobj = mysql_fetch_object($sqlres)) {
 		if ($sqlobj->$player != 255) {
-			$ret += $sqlobj->$player;
+			$sum += $sqlobj->$player;
 			$Merker = TRUE;
 		}
 	}
 	if (! $Merker) {
 		return "-";
 	}
-	return $ret;
+	return $sum;
+	*/
 }
 
 // Create list (prettytable) with number of goals for multiple players
 function getListOfGoalsForPlayers(&$players, $filter) {
 	$listOfGoals = array();
+	// TODO: instead, try "SELECT SUM(`foo`) AS 'foo', SUM(`bar`) AS 'bar' FROM ..."
 	foreach ($players as $player) {
 		$listOfGoals[$player] = getNumGoalsForPlayer($player, $filter);
 	}
