@@ -27,15 +27,43 @@
  *       ``start'' nicht gesetzt -> gesamt
  *       ``ende'' nicht gesetzt -> ``start'' + 1 Jahr
  *       Format: dd.mm.yyyy
+ * saison - Jahreszahl, ueberschreibt ``start'' und ``ende''
+ *       setzt ``start'' auf 1. Sep. <saison> und ``ende'' auf 31. Aug. <saison+1>
+ *       Bsp.: Saison 2011/2012 -> saison=2011
  */
 
 # to activate the extension, include it from your LocalSettings.php
 # with: include("extensions/YourExtensionName.php");
 
 $wgExtensionFunctions[] = "wfStats";
+$wgExtensionCredits['parserhook'][] = array(
+       'path' => __FILE__,
+       'name' => 'UWR_Stats',
+       'author' =>'le Nique dangereux', 
+       'url' => '', 
+       'description' => 'Verschiedene Statistikfunktionen, siehe z.B. Torschützenliste der [[1. Bundesliga Süd 2011/2012]]',
+       'version'  => 1.1,
+       );
 function wfStats() {
 	global $wgParser;
 	$wgParser->setHook( "stats", "uwr_stats" );
+}
+
+// for a list of player names, check if all corresponding columns exist
+function checkPlayerNames($playersString) {
+	$allowedNames = array();
+	$res = mysql_query('DESCRIBE `stats_games`');
+	mysql_data_seek($res, 9); // skip data columns
+	while($row = mysql_fetch_array($res)) {
+		$allowedNames[] = $row['Field'];
+	}
+	$players = explode(',', $playersString);
+	foreach ($players as $p) {
+		if (! in_array($p, $allowedNames)) {
+			return false;
+		}
+	}
+	return true;
 }
 
 // Parses parameters given to extension
@@ -65,18 +93,20 @@ function parseParams(&$input) {
 				$uwr_stats_allParams[$sType] = $sArg; // 2012
 			}
 			break;
+		case 'saison':
+			$test = (int) $sArg;
+			if ($test > 1900 AND $test < 2200) {
+				$uwr_stats_allParams[$sType] = $sArg;
+			}
+			break;
 		case 'name':
 			if ($sArg != "Gesamt") {
-				// see if column for player exists
-				$res = mysql_query('DESCRIBE `stats_games`');
-				$uwr_stats_fehler = TRUE;
-				mysql_data_seek($res, 9);
-				while($row = mysql_fetch_array($res)) {
-					if ($sArg == $row['Field']) { // Nik
-						$uwr_stats_allParams[$sType] = $sArg;
-						$uwr_stats_fehler = FALSE;
-					}
-				}    
+				$rv = checkPlayerNames($sArg);
+				if (! $rv) {
+					$uwr_stats_fehler = TRUE;
+					return 'E3';
+				}
+				$uwr_stats_allParams[$sType] = $sArg;
 			}
 			break;
 		case 'target':
@@ -87,7 +117,7 @@ function parseParams(&$input) {
 				$uwr_stats_allParams[$sType] = $sArg; // Tore
 			} else {
 				$uwr_stats_fehler = TRUE;
-				return false;
+				return 'E1';
 			}
 			break;
 		case 'art':
@@ -96,7 +126,7 @@ function parseParams(&$input) {
 			foreach($uwr_stats_aArt as $ArtPruef) {
 				if (! in_array($ArtPruef, $allowedArt)) {
 					$uwr_stats_fehler = TRUE;
-					return false;
+					return 'E2';
 				}
 			}
 			break;
@@ -226,6 +256,22 @@ function getNumGoalsForPlayer($player, $filter) {
 	return $ret;
 }
 
+// Create list (prettytable) with number of goals for multiple players
+function getListOfGoalsForPlayers(&$players, $filter) {
+	$listOfGoals = array();
+	foreach ($players as $player) {
+		$listOfGoals[$player] = getNumGoalsForPlayer($player, $filter);
+	}
+	arsort($listOfGoals);
+	$out = '<table class="prettytable sortable">';
+	$out .= '<tr><th>Name</th><th>Tore</th>';
+	foreach ($listOfGoals as $p => $g) {
+		$out .= "<tr><td>{$p}</td><td style='text-align:center;'>{$g}</td></tr>";
+	}
+	$out .= '</table>';
+	return $out;
+}
+
 // Get total number of won (G), draw (U), or lost (V) games
 // Params:
 // GUV - [GUV]
@@ -251,22 +297,29 @@ function uwr_stats($input) {
 		'ende'   => "",
 		'name'   => "Gesamt",
 		'target' => "",
+		'saison' => 0,
 		);
 	$uwr_stats_aArt = array();
 	$uwr_stats_fehler = FALSE;
 	$output = "";
 	
 	// parse and check parameters
-	parseParams($input);
+	$rv = parseParams($input);
 	if ($uwr_stats_fehler) {
-		return "Fehlerhafte Parameter (1)";
+		return "Fehlerhafte Parameter (1) [{$rv}]";
 	}
 	// target nicht gesetzt
 	if ('' == $uwr_stats_allParams['target'] && "Gesamt" == $uwr_stats_allParams['name']) {
 		$uwr_stats_fehler = TRUE;
 	}
 	if ($uwr_stats_fehler) {
-		return $uwr_stats_allParams['name']. "Fehlerhafte Parameter (2)";
+		return $uwr_stats_allParams['name'] . "Fehlerhafte Parameter (2)";
+	}
+
+	// ``saison'' gesetzt (setze ``start'' und ``ende'')
+	if ($uwr_stats_allParams['saison']) {
+		$uwr_stats_allParams['start'] = $uwr_stats_allParams['saison'] . "-09-01";
+		$uwr_stats_allParams['ende']  = ($uwr_stats_allParams['saison'] + 1)."-08-31";
 	}
 
 	// ``start'' nicht gesetzt (auf unendlich setzen)
@@ -285,9 +338,14 @@ function uwr_stats($input) {
 
 	// build output
 	if ("Gesamt" != $uwr_stats_allParams['name']) {
-		// TODO: add support for list of players
-		// single player stats
-		$output = getNumGoalsForPlayer($uwr_stats_allParams['name'], $SuchString);
+		$players = explode(',', $uwr_stats_allParams['name']);
+		if (1 == count($players)) {
+			// single player stats
+			$output = getNumGoalsForPlayer($players[0], $SuchString);
+		} else {
+			// list of players
+			$output = getListOfGoalsForPlayers($players, $SuchString);
+		}
 	} else { // Gesamt != name
 		// whole team stats
 		switch ($uwr_stats_allParams['target']) {
