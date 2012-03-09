@@ -272,6 +272,8 @@ function getNumGoalsForPlayer($player, $filter) {
 function getListOfGoalsForPlayers(&$players, $filter) {
 	$listOfGoals = array();
 	// TODO: instead, try "SELECT SUM(`foo`) AS 'foo', SUM(`bar`) AS 'bar' FROM ..."
+	//       would return 0, even if player is undefined ('-')
+	//       acceptable, since the list of players is manually selected anyways, isn't it?
 	foreach ($players as $player) {
 		$listOfGoals[$player] = getNumGoalsForPlayer($player, $filter);
 	}
