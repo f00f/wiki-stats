@@ -296,6 +296,9 @@ function getNumGUV($GUV, $filter) {
 	$op = $ops[ $GUV{0} ]; // consider only first char
 	$sqlres = mysql_query("SELECT COUNT(`ID`) AS 'COUNT' FROM `stats_games` "
 						. "WHERE `Tore` {$op} `Gegentore` AND {$filter}");
+	if (mysql_num_rows($sqlres) < 1) {
+		return '-';
+	}
 	$row = mysql_fetch_assoc($sqlres);
 	return $row['COUNT'];
 }
