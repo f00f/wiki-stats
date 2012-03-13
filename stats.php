@@ -14,8 +14,9 @@
  * name - wen soll die Statistik enthalten?
  *       Moegliche Werte:
  *       "Gesamt" [default] - fuer die ganze Mannschaft (``target'' erforderlich)
- *       Spielername - nur dieser Spieler
- *       Liste von Namen - diese Spieler (z.B. fuer Torschuetzenlisten)
+ *       Ein Spielername - nur dieser Spieler
+ *       Liste von Namen - diese Spieler (fuer Torschuetzenlisten)
+ *       "torschuetzen" - alle Spieler, die ein Tor erzielt haben (fuer Torschuetzenlisten)
  * target - was soll angezeigt werden?
  *       Moegliche Werte: "Gewonnen", "Verloren", "Unentschieden",
  *                        "Tore", "Gegentore", "SerieG", "SerieV"
@@ -48,15 +49,22 @@ function wfStats() {
 	global $wgParser;
 	$wgParser->setHook( "stats", "uwr_stats" );
 }
+define('NUM_NONPLAYER_COLS', 9); //< number of columns at the beginning which are not player scores
+
+// fetch player names from database schema
+function getPlayerNamesFromDB() {
+	$allNames = array();
+	$res = mysql_query('DESCRIBE `stats_games`');
+	mysql_data_seek($res, NUM_NONPLAYER_COLS); // skip data columns
+	while($row = mysql_fetch_array($res)) {
+		$allNames[] = $row['Field'];
+	}
+	return $allNames;
+}
 
 // for a list of player names, check if all corresponding columns exist
 function checkPlayerNames($playersString) {
-	$allowedNames = array();
-	$res = mysql_query('DESCRIBE `stats_games`');
-	mysql_data_seek($res, 9); // skip data columns
-	while($row = mysql_fetch_array($res)) {
-		$allowedNames[] = $row['Field'];
-	}
+	$allowedNames = getPlayerNamesFromDB();
 	$players = explode(',', $playersString);
 	foreach ($players as $p) {
 		if (! in_array($p, $allowedNames)) {
@@ -100,7 +108,10 @@ function parseParams(&$input) {
 			}
 			break;
 		case 'name':
-			if ($sArg != "Gesamt") {
+			if ('Gesamt' == $sArg || 'torschuetzen' == $sArg) {
+				$uwr_stats_allParams[$sType] = $sArg;
+			} else {
+			//if ($sArg != "Gesamt") {
 				$rv = checkPlayerNames($sArg);
 				if (! $rv) {
 					$uwr_stats_fehler = TRUE;
@@ -269,13 +280,22 @@ function getNumGoalsForPlayer($player, $filter) {
 }
 
 // Create list (prettytable) with number of goals for multiple players
-function getListOfGoalsForPlayers(&$players, $filter) {
+// Params:
+// players - array with player names
+// filter - filter game type and date range
+// excludeZero - don't show players which didn't score
+// excludeNotPlayed - don't show players who didn't play
+function getListOfGoalsForPlayers(&$players, $filter, $excludeZero = false, $excludeNotPlayed = false) {
 	$listOfGoals = array();
-	// TODO: instead, try "SELECT SUM(`foo`) AS 'foo', SUM(`bar`) AS 'bar' FROM ..."
-	//       would return 0, even if player is undefined ('-')
-	//       acceptable, since the list of players is manually selected anyways, isn't it?
 	foreach ($players as $player) {
-		$listOfGoals[$player] = getNumGoalsForPlayer($player, $filter);
+		$goals = getNumGoalsForPlayer($player, $filter);
+		if ($excludeZero && ('0' === $goals || 0 === $goals)) {
+			continue;
+		}
+		if ($excludeNotPlayed && '-' == $goals) {
+			continue;
+		}
+		$listOfGoals[$player] = $goals;
 	}
 	arsort($listOfGoals);
 	$out = '<table class="prettytable sortable">';
@@ -285,6 +305,15 @@ function getListOfGoalsForPlayers(&$players, $filter) {
 	}
 	$out .= '</table>';
 	return $out;
+}
+
+// Create list (prettytable) with number of goals for all players who have scored
+// in the selected period and match type.
+function getListOfGoalsForAllScorers($filter) {
+	$players = getPlayerNamesFromDB();
+	$excludeZero = true;
+	$excludeNotPlayed = true;
+	return getListOfGoalsForPlayers($players, $filter, $excludeZero, $excludeNotPlayed);
 }
 
 // Get total number of won (G), draw (U), or lost (V) games
@@ -356,13 +385,17 @@ function uwr_stats($input) {
 
 	// build output
 	if ("Gesamt" != $uwr_stats_allParams['name']) {
-		$players = explode(',', $uwr_stats_allParams['name']);
-		if (1 == count($players)) {
-			// single player stats
-			$output = getNumGoalsForPlayer($players[0], $SuchString);
+		if ('torschuetzen' == $uwr_stats_allParams['name']) {
+			$output = getListOfGoalsForAllScorers($SuchString);
 		} else {
-			// list of players
-			$output = getListOfGoalsForPlayers($players, $SuchString);
+			$players = explode(',', $uwr_stats_allParams['name']);
+			if (1 == count($players)) {
+				// single player stats
+				$output = getNumGoalsForPlayer($players[0], $SuchString);
+			} else {
+				// list of players
+				$output = getListOfGoalsForPlayers($players, $SuchString);
+			}
 		}
 	} else { // Gesamt != name
 		// whole team stats
