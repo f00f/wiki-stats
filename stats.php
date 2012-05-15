@@ -47,7 +47,7 @@ $wgExtensionCredits['parserhook'][] = array(
        );
 function wfStats() {
 	global $wgParser;
-	$wgParser->setHook( "stats", "uwr_stats" );
+	$wgParser->setHook( "stats", "uwr_stats_r" );
 }
 define('NUM_NONPLAYER_COLS', 9); //< number of columns at the beginning which are not player scores
 
@@ -73,6 +73,7 @@ function checkPlayerNames($playersString) {
 	}
 	return true;
 }
+
 
 // Parses parameters given to extension
 function parseParams(&$input) {
@@ -423,4 +424,55 @@ function uwr_stats($input) {
 	// return the output
 	return $output;
 }
+
+
+
+// Mit Statistikwerten Rechnen
+function uwr_stats_r ($input) {
+
+preg_match_all("#\((.*?)\)#s",$input,$matches, PREG_PATTERN_ORDER);
+preg_match_all("#\)(.*?)\(#s",$input,$matches2, PREG_PATTERN_ORDER);
+
+$i=0;
+$merk=0;
+$outputtemp1=0;
+$outputtemp2=0;
+$output=0;
+
+ foreach ($matches[1] as $key => $p) {
+  if ($merk==0)
+   {$output = uwr_stats($p);$merk=1;}
+  else
+   {
+    $outputtemp2 = uwr_stats($p);
+  
+    if ($matches2[1][$key-1]== "-" || $matches2[1][$key-1]== "+" || $matches2[1][$key-1]== "*" || $matches2[1][$key-1]== "/") 
+    {
+       switch ($matches2[1][$key-1]) {
+		    case '-':
+		    $output = $output - intval($outputtemp2);
+		    break;
+		    case '+':
+		    $output = $output + intval($outputtemp2);
+		    break;
+		    case '*':
+		    $output = $output * intval($outputtemp2);
+		    break;
+		    case '/':
+		    $output = $output / intval($outputtemp2);
+		    break;
+		    }  
+       
+    }
+   }
+  $i++;
+ }
+
+if ($i==0)
+{$output = uwr_stats($input);}
+
+return $output;
+}
+
+
 ?>
