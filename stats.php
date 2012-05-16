@@ -16,7 +16,7 @@
  *       "Gesamt" [default] - fuer die ganze Mannschaft (``target'' erforderlich)
  *       Ein Spielername - nur dieser Spieler
  *       Liste von Namen - diese Spieler (fuer Torschuetzenlisten)
- *       "torschuetzen" - alle Spieler, die ein Tor erzielt haben (fuer Torschuetzenlisten)
+ *       "torschuetzen", "torschuetzenS" - alle Spieler, die ein Tor erzielt haben (fuer Torschuetzenlisten)
  * target - was soll angezeigt werden?
  *       Moegliche Werte: "Gewonnen", "Verloren", "Unentschieden",
  *                        "Tore", "Gegentore", "SerieG", "SerieV", "All"
@@ -109,7 +109,7 @@ function parseParams(&$input) {
 			}
 			break;
 		case 'name':
-			if ('Gesamt' == $sArg || 'torschuetzen' == $sArg) {
+			if ('Gesamt' == $sArg || 'torschuetzen' == $sArg || 'torschuetzenS' == $sArg) {
 				$uwr_stats_allParams[$sType] = $sArg;
 			} else {
 			//if ($sArg != "Gesamt") {
@@ -295,7 +295,8 @@ function getNumGoalsForPlayer($player, $filter) {
 // filter - filter game type and date range
 // excludeZero - don't show players which didn't score
 // excludeNotPlayed - don't show players who didn't play
-function getListOfGoalsForPlayers(&$players, $filter, $excludeZero = false, $excludeNotPlayed = false) {
+// format - N=Normal S=Short
+function getListOfGoalsForPlayers(&$players, $filter, $excludeZero = false, $excludeNotPlayed = false, $format = 'N') {
 	$listOfGoals = array();
 	foreach ($players as $player) {
 		$goals = getNumGoalsForPlayer($player, $filter);
@@ -308,22 +309,36 @@ function getListOfGoalsForPlayers(&$players, $filter, $excludeZero = false, $exc
 		$listOfGoals[$player] = $goals;
 	}
 	arsort($listOfGoals);
-	$out = '<table class="prettytable sortable">';
-	$out .= '<tr><th>Name</th><th>Tore</th>';
-	foreach ($listOfGoals as $p => $g) {
-		$out .= "<tr><td>{$p}</td><td style='text-align:center;'>{$g}</td></tr>";
+	
+	if ($format=='N')
+	 {
+	 $out = '<table class="prettytable sortable">';
+	 $out .= '<tr><th>Name</th><th>Tore</th>';
+	 foreach ($listOfGoals as $p => $g) {
+	  	$out .= "<tr><td>{$p}</td><td style='text-align:center;'>{$g}</td></tr>";
+	  }
+	 $out .= '</table>';
+	 }
+	
+	if ($format=='S')
+	{
+	 foreach ($listOfGoals as $p => $g) {
+	    if ($out!="")
+	    {$out.=", ";}
+	  	$out .= "{$p} {$g}";
+	  }
 	}
-	$out .= '</table>';
+	
 	return $out;
 }
 
 // Create list (prettytable) with number of goals for all players who have scored
 // in the selected period and match type.
-function getListOfGoalsForAllScorers($filter) {
+function getListOfGoalsForAllScorers($filter, $format) {
 	$players = getPlayerNamesFromDB();
 	$excludeZero = true;
 	$excludeNotPlayed = true;
-	return getListOfGoalsForPlayers($players, $filter, $excludeZero, $excludeNotPlayed);
+	return getListOfGoalsForPlayers($players, $filter, $excludeZero, $excludeNotPlayed, $format);
 }
 
 // Get total number of all (A), won (G), draw (U), or lost (V) games
@@ -400,8 +415,11 @@ function uwr_stats($input) {
 
 	// build output
 	if ("Gesamt" != $uwr_stats_allParams['name']) {
-		if ('torschuetzen' == $uwr_stats_allParams['name']) {
-			$output = getListOfGoalsForAllScorers($SuchString);
+		if ('torschuetzen' == $uwr_stats_allParams['name'] || 'torschuetzenS' == $uwr_stats_allParams['name']) {
+			if ('torschuetzen' == $uwr_stats_allParams['name'])
+			 {$output = getListOfGoalsForAllScorers($SuchString,'N');}
+			 else
+			 {$output = getListOfGoalsForAllScorers($SuchString,'S');}
 		} else {
 			$players = explode(',', $uwr_stats_allParams['name']);
 			if (1 == count($players)) {
