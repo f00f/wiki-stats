@@ -22,7 +22,7 @@
  *                        "Tore", "Gegentore", "SerieG", "SerieV", "All"
  * art - welche Wettkaempfe sollen beruecksichtigt werden?
  *       nicht gesetzt -> alle
- *       "BUL", "CC", "DM"
+ *       "BUL", "CC", "DM" oder die Spiel-ID
  *       Kombination mit "+", z.B. BUL+DM
  * start, ende - welcher Zeitraum soll beruecksichtigt werden?
  *       ``start'' nicht gesetzt -> gesamt
@@ -136,8 +136,8 @@ function parseParams(&$input) {
 			$allowedArt = array('BUL', 'CC', 'DM');
 			$uwr_stats_aArt = explode("+", $sArg);
 			foreach($uwr_stats_aArt as $ArtPruef) {
-				if (! in_array($ArtPruef, $allowedArt)) {
-					$uwr_stats_fehler = TRUE;
+				if (! (in_array($ArtPruef, $allowedArt) || is_numeric($ArtPruef)) ) {
+				  $uwr_stats_fehler = TRUE;
 					return 'E2';
 				}
 			}
@@ -161,9 +161,18 @@ function build_filter($from, $to) {
 
 	// filter by tournament-type
 	if (isset($uwr_stats_aArt) && count($uwr_stats_aArt) > 0) {
+	   if (is_numeric($uwr_stats_aArt[0]))
+	   {
+	   	$filter .= " AND (`ID`='"
+				. implode("' OR `ID`='", $uwr_stats_aArt)
+				. "') ";
+	   }
+	   else
+	   {
 		$filter .= " AND (`Art`='"
 					. implode("' OR `Art`='", $uwr_stats_aArt)
 					. "') ";
+		 }			
 		/*
 		$Merker = FALSE;
 		foreach($uwr_stats_aArt as $ArtPruef) {
