@@ -325,7 +325,9 @@ function getListOfGoalsForPlayers(&$players, $filter, $excludeZero = false, $exc
 	 foreach ($listOfGoals as $p => $g) {
 	    if ($out!="")
 	    {$out.=", ";}
-	  	$out .= "{$p} {$g}";
+	  	$out .= "{$p}";
+	  	if ($g!="1")
+	  	{$out .=" {$g}";}
 	  }
 	}
 	
