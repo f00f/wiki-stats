@@ -19,7 +19,7 @@
  *       "torschuetzen" - alle Spieler, die ein Tor erzielt haben (fuer Torschuetzenlisten)
  * target - was soll angezeigt werden?
  *       Moegliche Werte: "Gewonnen", "Verloren", "Unentschieden",
- *                        "Tore", "Gegentore", "SerieG", "SerieV"
+ *                        "Tore", "Gegentore", "SerieG", "SerieV", "All"
  * art - welche Wettkaempfe sollen beruecksichtigt werden?
  *       nicht gesetzt -> alle
  *       "BUL", "CC", "DM"
@@ -124,7 +124,7 @@ function parseParams(&$input) {
 		case 'target':
 			$allowedTarget = array('Tore', 'Gegentore',
 								'Gewonnen', 'Verloren', 'Unentschieden',
-								'SerieG', 'SerieV');
+								'SerieG', 'SerieV', 'All');
 			if (in_array($sArg, $allowedTarget)) {
 				$uwr_stats_allParams[$sType] = $sArg; // Tore
 			} else {
@@ -317,15 +317,20 @@ function getListOfGoalsForAllScorers($filter) {
 	return getListOfGoalsForPlayers($players, $filter, $excludeZero, $excludeNotPlayed);
 }
 
-// Get total number of won (G), draw (U), or lost (V) games
+// Get total number of all (A), won (G), draw (U), or lost (V) games
 // Params:
 // GUV - [GUV]
 // filter - SQL condition to filter stats table
-function getNumGUV($GUV, $filter) {
-	$ops = array('G' => '>', 'U' => '=', 'V' => '<');
-	$op = $ops[ $GUV{0} ]; // consider only first char
-	$sqlres = mysql_query("SELECT COUNT(`ID`) AS 'COUNT' FROM `stats_games` "
-						. "WHERE `Tore` {$op} `Gegentore` AND {$filter}");
+function getNumGUVA($GUV, $filter) {
+  if ($GUV{0}=='A')
+   {$sqlres = mysql_query("SELECT COUNT(`ID`) AS 'COUNT' FROM `stats_games` WHERE {$filter}");}
+  else
+   {
+	 $ops = array('G' => '>', 'U' => '=', 'V' => '<');
+	 $op = $ops[ $GUV{0} ]; // consider only first char
+	 $sqlres = mysql_query("SELECT COUNT(`ID`) AS 'COUNT' FROM `stats_games` "
+	 				            	. "WHERE `Tore` {$op} `Gegentore` AND {$filter}");
+	 }
 	if (mysql_num_rows($sqlres) < 1) {
 		return '-';
 	}
@@ -408,7 +413,8 @@ function uwr_stats($input) {
 		case 'Gewonnen':
 		case 'Unentschieden':
 		case 'Verloren':
-			$output = getNumGUV($uwr_stats_allParams['target'], $SuchString);
+		case 'All':
+			$output = getNumGUVA($uwr_stats_allParams['target'], $SuchString);
 			break;
 		case 'SerieG':
 			$output = getSeriesWon($SuchString);
@@ -441,10 +447,18 @@ $output=0;
 
  foreach ($matches[1] as $key => $p) {
   if ($merk==0)
-   {$output = uwr_stats($p);$merk=1;}
+   {
+    if (is_numeric($p))
+    {$output = $p + 0;}
+    else
+    {$output = uwr_stats($p);$merk=1;}
+   }
   else
    {
-    $outputtemp2 = uwr_stats($p);
+    if (is_numeric($p)) 
+    {$outputtemp2 = $p + 0;}
+    else
+    {$outputtemp2 = uwr_stats($p);}
   
     if ($matches2[1][$key-1]== "-" || $matches2[1][$key-1]== "+" || $matches2[1][$key-1]== "*" || $matches2[1][$key-1]== "/") 
     {
@@ -470,6 +484,9 @@ $output=0;
 
 if ($i==0)
 {$output = uwr_stats($input);}
+
+if (is_float($output))
+{$output = round($output,2);}
 
 return $output;
 }
