@@ -297,6 +297,7 @@ function getNumGoalsForPlayer($player, $filter) {
 // excludeNotPlayed - don't show players who didn't play
 // format - N=Normal S=Short
 function getListOfGoalsForPlayers(&$players, $filter, $excludeZero = false, $excludeNotPlayed = false, $format = 'N') {
+         $out="";
 	$listOfGoals = array();
 	foreach ($players as $player) {
 		$goals = getNumGoalsForPlayer($player, $filter);
