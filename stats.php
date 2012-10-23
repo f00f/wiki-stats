@@ -17,6 +17,7 @@
  *       Ein Spielername - nur dieser Spieler
  *       Liste von Namen - diese Spieler (fuer Torschuetzenlisten)
  *       "torschuetzen", "torschuetzenS" - alle Spieler, die ein Tor erzielt haben (fuer Torschuetzenlisten)
+ *       "mitspieler" - alle die dabei waren (für Anwesenheitsliste)   
  * target - was soll angezeigt werden?
  *       Moegliche Werte: "Gewonnen", "Verloren", "Unentschieden",
  *                        "Tore", "Gegentore", "SerieG", "SerieV", "All"
@@ -109,7 +110,7 @@ function parseParams(&$input) {
 			}
 			break;
 		case 'name':
-			if ('Gesamt' == $sArg || 'torschuetzen' == $sArg || 'torschuetzenS' == $sArg) {
+			if ('Gesamt' == $sArg || 'torschuetzen' == $sArg || 'torschuetzenS' == $sArg || 'mitspieler' == $sArg) {
 				$uwr_stats_allParams[$sType] = $sArg;
 			} else {
 			//if ($sArg != "Gesamt") {
@@ -297,8 +298,12 @@ function getNumGoalsForPlayer($player, $filter) {
 // excludeNotPlayed - don't show players who didn't play
 // format - N=Normal S=Short
 function getListOfGoalsForPlayers(&$players, $filter, $excludeZero = false, $excludeNotPlayed = false, $format = 'N') {
-         $out="";
+  $out="";
 	$listOfGoals = array();
+	
+	if ($format=='M')
+	{$excludeZero = false;}
+	
 	foreach ($players as $player) {
 		$goals = getNumGoalsForPlayer($player, $filter);
 		if ($excludeZero && ('0' === $goals || 0 === $goals)) {
@@ -331,6 +336,15 @@ function getListOfGoalsForPlayers(&$players, $filter, $excludeZero = false, $exc
 	  	{$out .=" {$g}";}
 	  }
 	}
+	
+  if ($format=='M')
+  	{
+  	 foreach ($listOfGoals as $p => $g) {
+	      if ($out!="")
+	      {$out.=", ";}
+	    	$out .= "{$p}";
+	    }
+  	}	
 	
 	return $out;
 }
@@ -418,11 +432,13 @@ function uwr_stats($input) {
 
 	// build output
 	if ("Gesamt" != $uwr_stats_allParams['name']) {
-		if ('torschuetzen' == $uwr_stats_allParams['name'] || 'torschuetzenS' == $uwr_stats_allParams['name']) {
+		if ('torschuetzen' == $uwr_stats_allParams['name'] || 'torschuetzenS' == $uwr_stats_allParams['name'] || 'mitspieler' == $uwr_stats_allParams['name']) {
 			if ('torschuetzen' == $uwr_stats_allParams['name'])
 			 {$output = getListOfGoalsForAllScorers($SuchString,'N');}
-			 else
+			if ('torschuetzenS' == $uwr_stats_allParams['name'])
 			 {$output = getListOfGoalsForAllScorers($SuchString,'S');}
+			if ('mitspieler' == $uwr_stats_allParams['name'])
+			 {$output = getListOfGoalsForAllScorers($SuchString,'M');}
 		} else {
 			$players = explode(',', $uwr_stats_allParams['name']);
 			if (1 == count($players)) {
