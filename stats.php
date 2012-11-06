@@ -17,7 +17,8 @@
  *       Ein Spielername - nur dieser Spieler
  *       Liste von Namen - diese Spieler (fuer Torschuetzenlisten)
  *       "torschuetzen", "torschuetzenS" - alle Spieler, die ein Tor erzielt haben (fuer Torschuetzenlisten)
- *       "mitspieler" - alle die dabei waren (für Anwesenheitsliste)   
+ *       "mitspieler" - alle die dabei waren (für Anwesenheitsliste)
+ *       "gesamtbilanz" - Ewige Gesamtbilanz wird als Tabelle ausgegeben   
  * target - was soll angezeigt werden?
  *       Moegliche Werte: "Gewonnen", "Verloren", "Unentschieden",
  *                        "Tore", "Gegentore", "SerieG", "SerieV", "All"
@@ -110,7 +111,7 @@ function parseParams(&$input) {
 			}
 			break;
 		case 'name':
-			if ('Gesamt' == $sArg || 'torschuetzen' == $sArg || 'torschuetzenS' == $sArg || 'mitspieler' == $sArg) {
+			if ('Gesamt' == $sArg || 'torschuetzen' == $sArg || 'torschuetzenS' == $sArg || 'mitspieler' == $sArg || 'gesamtbilanz' == $sArg) {
 				$uwr_stats_allParams[$sType] = $sArg;
 			} else {
 			//if ($sArg != "Gesamt") {
@@ -349,6 +350,87 @@ function getListOfGoalsForPlayers(&$players, $filter, $excludeZero = false, $exc
 	return $out;
 }
 
+
+// Erstelle Liste (prettytable) Gesamtbilanz
+function getListOfGesamtbilanz($SuchString){
+	$sqlres = mysql_query("SELECT * FROM stats_games WHERE ".$SuchString." GROUP BY Gegner ORDER BY Gegner");
+	if (mysql_num_rows($sqlres) < 1) {
+		return "-";
+	}
+$out="";
+$AnzahlSpiele=0;
+$AnzahlGewonnen=0;
+$GesTore=0;$GesGegenTore=0;
+$hSieg=0;$hSiegT=0;$hSiegG=0;
+$AnzahlVerloren=0;
+$hVer=0;$hVerT=0;$hVerG=0;	
+$AnzahlUnentschieden=0;
+
+$out = '<table class="prettytable sortable mw-collapsible mw-collapsed">';
+$out .= '<tr><th>Gegner</th><th>Spiele</th><th>G</th><th>U</th><th>V</th><th class="unsortable">Tore</th><th class="unsortable">Höchster Sieg</th><th class="unsortable">Höchste Niederlage</th>';
+
+//$out ="{| class=\"prettytable sortable mw-collapsible mw-collapsed\"\n!Gegner\n!Spiele\n!G\n!U\n!V\n!class=\"unsortable\" | Tore\n!class=\"unsortable\" | Höchster Sieg\n!class=\"unsortable\" | Höchste Niederlage\n";
+
+	while ($row = mysql_fetch_object($sqlres))
+	{
+	 $sqltempres = mysql_query("SELECT * FROM stats_games WHERE ".$SuchString." AND Gegner = '".$row->Gegner."'");
+	 while ($rowtemp = mysql_fetch_object($sqltempres))
+	 {
+	  $GesTore=$GesTore+$rowtemp->Tore;
+	  $GesGegenTore=$GesGegenTore+$rowtemp->Gegentore;
+	  $AnzahlSpiele++;
+	  if ($rowtemp->Tore>$rowtemp->Gegentore)
+	  {
+	   $AnzahlGewonnen++;
+	   if($hSieg<$rowtemp->Tore-$rowtemp->Gegentore)
+	   {
+	    $hSieg=$rowtemp->Tore-$rowtemp->Gegentore;
+	    $hSiegT=$rowtemp->Tore;
+	    $hSiegG=$rowtemp->Gegentore;
+	   }
+	  }
+	  if ($rowtemp->Tore<$rowtemp->Gegentore)
+	  {
+	   $AnzahlVerloren++;
+	   if($hVer<$rowtemp->Gegentore-$rowtemp->Tore)
+	   {
+	    $hVer=$rowtemp->Gegentore-$rowtemp->Tore;
+	    $hVerT=$rowtemp->Tore;
+	    $hVerG=$rowtemp->Gegentore;
+	   }
+	  }
+	  if ($rowtemp->Tore==$rowtemp->Gegentore)
+	  {$AnzahlUnentschieden++;}
+ 
+	 }
+
+$out .= "<tr><td>".$row->Gegner."</td><td>".$AnzahlSpiele."</td><td>".$AnzahlGewonnen."</td><td>".$AnzahlUnentschieden."</td><td>".$AnzahlVerloren."</td><td>".$GesTore.":".$GesGegenTore."</td><td>";
+if ($hSieg!=0)
+{$out .= $hSiegT.":".$hSiegG;}
+$out .="</td><td>";
+if ($hVer!=0)
+{$out .=$hVerT.":".$hVerG;}
+$out .="</td></tr>";
+
+
+$AnzahlSpiele=0;
+$AnzahlGewonnen=0;
+$GesTore=0;$GesGegenTore=0;
+$hSieg=0;$hSiegT=0;$hSiegG=0;
+$AnzahlVerloren=0;
+$hVer=0;$hVerT=0;$hVerG=0;	
+$AnzahlUnentschieden=0;	  	  
+	  }
+
+//$out=$out."\n|}";
+$out .= "</table>";
+ return $out;
+}
+
+
+
+
+
 // Create list (prettytable) with number of goals for all players who have scored
 // in the selected period and match type.
 function getListOfGoalsForAllScorers($filter, $format) {
@@ -432,13 +514,15 @@ function uwr_stats($input) {
 
 	// build output
 	if ("Gesamt" != $uwr_stats_allParams['name']) {
-		if ('torschuetzen' == $uwr_stats_allParams['name'] || 'torschuetzenS' == $uwr_stats_allParams['name'] || 'mitspieler' == $uwr_stats_allParams['name']) {
+		if ('torschuetzen' == $uwr_stats_allParams['name'] || 'torschuetzenS' == $uwr_stats_allParams['name'] || 'mitspieler' == $uwr_stats_allParams['name'] || 'gesamtbilanz' == $uwr_stats_allParams['name']) {
 			if ('torschuetzen' == $uwr_stats_allParams['name'])
 			 {$output = getListOfGoalsForAllScorers($SuchString,'N');}
 			if ('torschuetzenS' == $uwr_stats_allParams['name'])
 			 {$output = getListOfGoalsForAllScorers($SuchString,'S');}
 			if ('mitspieler' == $uwr_stats_allParams['name'])
 			 {$output = getListOfGoalsForAllScorers($SuchString,'M');}
+			if ('gesamtbilanz' == $uwr_stats_allParams['name'])
+			 {$output = getListOfGesamtbilanz($SuchString);}  //doofes Englisch
 		} else {
 			$players = explode(',', $uwr_stats_allParams['name']);
 			if (1 == count($players)) {
