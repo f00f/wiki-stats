@@ -16,7 +16,7 @@
  *       "Gesamt" [default] - fuer die ganze Mannschaft (``target'' erforderlich)
  *       Ein Spielername - nur dieser Spieler
  *       Liste von Namen - diese Spieler (fuer Torschuetzenlisten)
- *       "torschuetzen", "torschuetzenS" - alle Spieler, die ein Tor erzielt haben (fuer Torschuetzenlisten)
+ *       "torschuetzen", "torschuetzenS", "torschuetzenG" - alle Spieler, die ein Tor erzielt haben (fuer Torschuetzenlisten)
  *       "mitspieler" - alle die dabei waren (für Anwesenheitsliste)
  *       "gesamtbilanz" - Ewige Gesamtbilanz wird als Tabelle ausgegeben   
  * target - was soll angezeigt werden?
@@ -111,7 +111,7 @@ function parseParams(&$input) {
 			}
 			break;
 		case 'name':
-			if ('Gesamt' == $sArg || 'torschuetzen' == $sArg || 'torschuetzenS' == $sArg || 'mitspieler' == $sArg || 'gesamtbilanz' == $sArg) {
+			if ('Gesamt' == $sArg || 'torschuetzen' == $sArg || 'torschuetzenS' == $sArg || 'mitspieler' == $sArg || 'gesamtbilanz' == $sArg  || 'torschuetzenG' == $sArg) {
 				$uwr_stats_allParams[$sType] = $sArg;
 			} else {
 			//if ($sArg != "Gesamt") {
@@ -291,6 +291,25 @@ function getNumGoalsForPlayer($player, $filter) {
 	*/
 }
 
+function getNumGoalsForPlayerG($player,$filter) {
+$Tore=0;
+
+$sqlres = mysql_query("SELECT * FROM `stats_games` WHERE {$filter}");
+while ($sqlobj =  mysql_fetch_object($sqlres)) {
+
+	$sqlres2 = mysql_query("SELECT * FROM `stats_games` WHERE `ID` = {$sqlobj->ID}");
+$sqlobj2 =  mysql_fetch_object($sqlres2);
+if ($sqlobj2->Tore!=0 && $sqlobj2->$player!=255)
+{$Tore=$Tore+($sqlobj2->$player/($sqlobj2->Tore-$sqlobj2->Gegentore));}
+
+}
+
+return round ($Tore,2);
+}
+
+
+
+
 // Create list (prettytable) with number of goals for multiple players
 // Params:
 // players - array with player names
@@ -300,6 +319,7 @@ function getNumGoalsForPlayer($player, $filter) {
 // format - N=Normal S=Short
 function getListOfGoalsForPlayers(&$players, $filter, $excludeZero = false, $excludeNotPlayed = false, $format = 'N') {
   $out="";
+  $Allplayer="";
 	$listOfGoals = array();
 	
 	if ($format=='M')
@@ -307,6 +327,7 @@ function getListOfGoalsForPlayers(&$players, $filter, $excludeZero = false, $exc
 	
 	foreach ($players as $player) {
 		$goals = getNumGoalsForPlayer($player, $filter);
+		$goalsG = getNumGoalsForPlayerG($player,$filter);
 		if ($excludeZero && ('0' === $goals || 0 === $goals)) {
 			continue;
 		}
@@ -314,6 +335,7 @@ function getListOfGoalsForPlayers(&$players, $filter, $excludeZero = false, $exc
 			continue;
 		}
 		$listOfGoals[$player] = $goals;
+		$listOfGoalsG[$player] = $goalsG;
 	}
 	arsort($listOfGoals);
 	
@@ -326,6 +348,19 @@ function getListOfGoalsForPlayers(&$players, $filter, $excludeZero = false, $exc
 	  }
 	 $out .= '</table>';
 	 }
+	
+
+	if ($format=='G')
+	 {
+	 $out = '<table class="prettytable sortable">';
+	 $out .= '<tr><th>Name</th><th>Tore</th><th>Tore (gewichtet)</th>';
+	 foreach ($listOfGoals as $p => $g) {
+	  	$out .= "<tr><td>{$p}</td><td style='text-align:center;'>{$g}</td><td style='text-align:center;'>".number_format ($listOfGoalsG[$p], 2,',','' )."</td></tr>";
+	  	
+	  }
+	 $out .= '</table>';
+	 }	
+	
 	
 	if ($format=='S')
 	{
@@ -514,11 +549,13 @@ function uwr_stats($input) {
 
 	// build output
 	if ("Gesamt" != $uwr_stats_allParams['name']) {
-		if ('torschuetzen' == $uwr_stats_allParams['name'] || 'torschuetzenS' == $uwr_stats_allParams['name'] || 'mitspieler' == $uwr_stats_allParams['name'] || 'gesamtbilanz' == $uwr_stats_allParams['name']) {
+		if ('torschuetzen' == $uwr_stats_allParams['name'] || 'torschuetzenS' == $uwr_stats_allParams['name'] || 'torschuetzenG' == $uwr_stats_allParams['name'] || 'mitspieler' == $uwr_stats_allParams['name'] || 'gesamtbilanz' == $uwr_stats_allParams['name']) {
 			if ('torschuetzen' == $uwr_stats_allParams['name'])
 			 {$output = getListOfGoalsForAllScorers($SuchString,'N');}
 			if ('torschuetzenS' == $uwr_stats_allParams['name'])
 			 {$output = getListOfGoalsForAllScorers($SuchString,'S');}
+			if ('torschuetzenG' == $uwr_stats_allParams['name'])
+			 {$output = getListOfGoalsForAllScorers($SuchString,'G');}
 			if ('mitspieler' == $uwr_stats_allParams['name'])
 			 {$output = getListOfGoalsForAllScorers($SuchString,'M');}
 			if ('gesamtbilanz' == $uwr_stats_allParams['name'])
