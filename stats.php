@@ -300,7 +300,7 @@ while ($sqlobj =  mysql_fetch_object($sqlres)) {
 	$sqlres2 = mysql_query("SELECT * FROM `stats_games` WHERE `ID` = {$sqlobj->ID}");
 $sqlobj2 =  mysql_fetch_object($sqlres2);
 if ($sqlobj2->Tore!=0 && $sqlobj2->$player!=255)
-{$Tore=$Tore+($sqlobj2->$player/($sqlobj2->Tore-$sqlobj2->Gegentore));}
+{$Tore=$Tore+($sqlobj2->$player/($sqlobj2->Tore));}
 
 }
 
@@ -352,7 +352,7 @@ function getListOfGoalsForPlayers(&$players, $filter, $excludeZero = false, $exc
 
 	if ($format=='G')
 	 {
-	 $out = '<table class="prettytable sortable">';
+	 $out = '<table class="prettytable sortable mw-collapsible mw-collapsed">';
 	 $out .= '<tr><th>Name</th><th>Tore</th><th>Tore (gewichtet)</th>';
 	 foreach ($listOfGoals as $p => $g) {
 	  	$out .= "<tr><td>{$p}</td><td style='text-align:center;'>{$g}</td><td style='text-align:center;'>".number_format ($listOfGoalsG[$p], 2,',','' )."</td></tr>";
