@@ -118,7 +118,7 @@ function parseParams(&$input) {
 				$rv = checkPlayerNames($sArg);
 				if (! $rv) {
 					$uwr_stats_fehler = TRUE;
-					return 'E3';
+					return 'E3: Wert "'.$sArg.'" ist fuer "name" nicht erlaubt/unterstuetzt.';
 				}
 				$uwr_stats_allParams[$sType] = $sArg;
 			}
@@ -131,7 +131,7 @@ function parseParams(&$input) {
 				$uwr_stats_allParams[$sType] = $sArg; // Tore
 			} else {
 				$uwr_stats_fehler = TRUE;
-				return 'E1';
+				return 'E1: Wert "'.$sArg.'" ist fuer "target" nicht erlaubt/unterstuetzt.';
 			}
 			break;
 		case 'art':
@@ -139,8 +139,8 @@ function parseParams(&$input) {
 			$uwr_stats_aArt = explode("+", $sArg);
 			foreach($uwr_stats_aArt as $ArtPruef) {
 				if (! (in_array($ArtPruef, $allowedArt) || is_numeric($ArtPruef)) ) {
-				  $uwr_stats_fehler = TRUE;
-					return 'E2';
+				    $uwr_stats_fehler = TRUE;
+					return 'E2: Wert "'.$ArtPruef.'" ist fuer "art" nicht erlaubt/unterstuetzt.';
 				}
 			}
 			break;
