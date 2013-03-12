@@ -24,7 +24,7 @@
  *                        "Tore", "Gegentore", "SerieG", "SerieV", "All"
  * art - welche Wettkaempfe sollen beruecksichtigt werden?
  *       nicht gesetzt -> alle
- *       "BUL", "CC", "DM" oder die Spiel-ID
+ *       "LL", "BUL", "CC", "DM" oder die Spiel-ID
  *       Kombination mit "+", z.B. BUL+DM
  * start, ende - welcher Zeitraum soll beruecksichtigt werden?
  *       ``start'' nicht gesetzt -> gesamt
@@ -135,7 +135,7 @@ function parseParams(&$input) {
 			}
 			break;
 		case 'art':
-			$allowedArt = array('BUL', 'CC', 'DM');
+			$allowedArt = array('LL', 'BUL', 'CC', 'DM');
 			$uwr_stats_aArt = explode("+", $sArg);
 			foreach($uwr_stats_aArt as $ArtPruef) {
 				if (! (in_array($ArtPruef, $allowedArt) || is_numeric($ArtPruef)) ) {
