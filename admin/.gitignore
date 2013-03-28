@@ -1,1 +1,3 @@
 .htaccess
+.htpasswd
+db_config.inc.php
