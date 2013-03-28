@@ -1,19 +1,7 @@
 <?php
-// move to /admin
-
-include("../sql.inc.php");
+require_once "./sql.inc.php";
 $sql->db_connect();
-
-//SpielerHinzufügen
-if ($_GET['Add']=="1")
-{
-	$sql->query("ALTER TABLE `stats_games` ADD `".$_GET['AddName']."` TINYINT UNSIGNED NOT NULL DEFAULT '255'");
-	sleep (2);
-	header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
-	header("Expires: Sat, 26 Jul 1997 05:00:00 GMT");  
-	header('Location: index.php');
-}
-//SpielerHinzufügen
+$fehler = 0;
 
 
 //$SpielerNamen = array("Nussi","Andi","Moritz","Luk","Felix","Nik","Hannes","Bela","Geza","Markus","Ardan","Veit","Lieven","Seb","Klemi","Jan","Mary","Flo","Oli","Olaf","Chrisi","Benni","Märtl","Manni","Michi","Sascha","Julia","Wölfels","Wenzel","Ariane","Lutscher","MSchottmüller","klFelix","Peter","MarkusL");
@@ -26,8 +14,8 @@ while($row = mysql_fetch_array($res))
 	array_push($SpielerNamen,$row['Field']);
 }
 
-$submit=$_GET["submit"];
-$edit=$_GET["edit"];
+$submit=@$_GET["submit"];
+$edit=@$_GET["edit"];
 //Editwerte prüfen
 if ($edit==1)
 {
@@ -208,7 +196,7 @@ if ($submit==1||$submit==2)
 
 </table>
 <input type="submit" value=" Absenden "> <input type="button" value=" Abbrechen " onClick="window.location.href='index.php'">
-<input name="ID" type="text" size="10" maxlength="50" <?php print "value=\"".$_POST["ID"]."\""?> style="visibility:hidden">
+<input name="ID" type="text" size="10" maxlength="50" <?php print "value=\"".@$_POST["ID"]."\""?> style="visibility:hidden">
 
 
 </td></tr></table>
@@ -229,26 +217,16 @@ ID: <input name="ID" type="text" size="10" maxlength="50"><br />
 </td><td>
 
 <?php //Add?>
-<script language="JavaScript">
-<!--
-function add(AddName) {
-if (confirm("Neuen Spieler \""+AddName+"\" hinzufügen?"))
-{window.location.href="index.php?Add=1&AddName="+AddName;}
-else 
-{}
-}
-// -->
-</script>
 
 
-<form action="" method="post" name="AddSP"> 
+<form action="./add_player.php" method="post" name="AddSP" onsubmit='return confirm("Neuen Spieler \""+AddName.value+"\" hinzufügen?")'>
 <table border=1 width=130><tr><td>
-
-Spieler hinzufügen: <input name="AddName" type="text" size="10" maxlength="50"><br />
-<input type="button" value=" hinzufügen " onclick="add(document.AddSP.AddName.value)">
-<font size=1>anschließend Reload drücken!</font>
+<input type="hidden" name="Add" value="1" />
+Spieler hinzufügen: <input name="AddName" type="text" size="10" maxlength="50">
+<input type="submit" value="hinzufügen" />
 </td></tr></table>
 </form>
+
 <?php //Add?>
 </td></tr></table>
 
