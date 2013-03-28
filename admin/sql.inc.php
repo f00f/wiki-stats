@@ -14,14 +14,15 @@ class my_Sql_cl {
   function db_connect() {
     if ($this->link_id == 0) {
       if ($this->passwort=="") {
-        $this->link_id = @mysql_connect("$this->server","$this->user"); mysql_set_charset('utf8',$this->link_id );
+        $this->link_id = @mysql_connect("$this->server","$this->user");
       } else {
-        $this->link_id = @mysql_connect("$this->server","$this->user","$this->passwort"); mysql_set_charset('utf8',$this->link_id );
+        $this->link_id = @mysql_connect("$this->server","$this->user","$this->passwort");
       }
     }
     if (!$this->link_id) {
       $this->stop("Datenbank-Verbindung fehlgeschlagen!");
     }
+	mysql_set_charset('utf8',$this->link_id );
     if ($this->datenbank!="") {
 	  if (!@mysql_select_db("$this->datenbank",$this->link_id)) {
 	    $this->stop("Datenbank nicht gefunden ( $this->datenbank ) !");
