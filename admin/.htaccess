@@ -1,4 +1,0 @@
-AuthType Basic
-AuthName "Restrict this directory - change .htaccess and .htpasswd"
-AuthUserFile /absolute/path/.htpasswd
-require valid-user
