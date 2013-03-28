@@ -1,0 +1,4 @@
+AuthType Basic 
+AuthName "Restricted access to this directory - edit .htaccess and .htpasswd" 
+AuthUserFile /absolute/path/.htpasswd
+require valid-user 
