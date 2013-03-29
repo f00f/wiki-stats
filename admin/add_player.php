@@ -5,7 +5,9 @@ $sql->db_connect();
 //SpielerHinzufügen
 if (@$_REQUEST['Add'] == "1" AND @$_REQUEST['AddName'])
 {
-	$sql->query("ALTER TABLE `stats_games` ADD `".$_GET['AddName']."` TINYINT UNSIGNED NOT NULL DEFAULT '255'");
+	$sql->query("ALTER TABLE `stats_games`
+		ADD `{$_REQUEST['AddName']}` TINYINT
+		UNSIGNED NOT NULL DEFAULT '255'");
 }
 //SpielerHinzufügen
 
