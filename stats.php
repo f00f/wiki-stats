@@ -42,10 +42,10 @@ $wgExtensionFunctions[] = "wfStats";
 $wgExtensionCredits['parserhook'][] = array(
        'path' => __FILE__,
        'name' => 'UWR_Stats',
-       'author' =>'le Nique dangereux', 
-       'url' => '', 
+       'author' =>'[[User:Nik|le Nique dangereux]] und [[User:Hannes|f00f]]',
+       'url' => 'http://ba.uwr1.de/',
        'description' => 'Verschiedene Statistikfunktionen, siehe z.B. Torschützenliste der [[1. Bundesliga Süd 2011/2012]]',
-       'version'  => 1.1,
+       'version'  => 1.2,
        );
 function wfStats() {
 	global $wgParser;
@@ -99,7 +99,6 @@ function parseParams(&$input) {
 		switch ($sType) {
 		case 'start':
 		case 'ende':
-			// clean up
 			if ('ende' == $sType && 'heute' == $sArg) {
 				$uwr_stats_allParams[$sType] = date('d.m.Y'); // 2012
 			}
@@ -129,7 +128,7 @@ function parseParams(&$input) {
 		case 'target':
 			$allowedTarget = array('Tore', 'Gegentore',
 								'Gewonnen', 'Verloren', 'Unentschieden',
-								'SerieG', 'SerieV', 'All');
+								'SerieG', 'SerieV', 'All', 'Turniere');
 			if (in_array($sArg, $allowedTarget)) {
 				$uwr_stats_allParams[$sType] = $sArg; // Tore
 			} else {
@@ -149,7 +148,6 @@ function parseParams(&$input) {
 				}
 			}
 			break;
-
 		}
 		if ($uwr_stats_fehler) {
 			print 'Fehler in den Parametern.';
@@ -489,6 +487,71 @@ function getListOfGoalsForAllScorers($filter, $format) {
 	return getListOfGoalsForPlayers($players, $filter, $excludeZero, $excludeNotPlayed, $format);
 }
 
+// Create list of all tournaments a player has played
+//   player - player name
+//   filter - SQL condition to filter stats table
+//   format - 'S'=grouped by season 'Y'=grouped by year
+function getListOfTournamentsForPlayer($player, $filter, $format='S') {
+	$dbr = wfGetDB( DB_SLAVE );
+	$res = $dbr->select('`stats_games`',
+		array("DISTINCT CONCAT(`Turnier`, ' ', YEAR(`Datum`)) AS `Name`",
+			'YEAR(`Datum`) AS `Jahr`',
+			'`Datum`'),
+		"`{$player}` != 255 AND {$filter}",
+		__METHOD__,
+		array('GROUP BY' => '`Name`',
+			'ORDER BY' => '`Datum` DESC')
+		);
+	if (0 == $res->numRows())
+	{
+		return "Fehler: Keine Turniere gefunden.";
+	}
+
+	$parser = new Parser();
+	$dummyTitle = new Title('');
+	$pOptions = new ParserOptions();
+	$out = '';
+	$current_section = '';
+	foreach($res as $turnier)
+	{
+		$date = date_create($turnier->Datum);
+		$section_id = $turnier->Jahr;
+		if ('S' == $format) {
+			if ($date->format('m') < 9) {
+				// belongs to last year's season
+				$section_id--;
+			}
+		}
+		if ($section_id != $current_section) {
+			$classes = 'uwr-stats tournament-list';
+			if ($current_section) {
+				// close previous section
+				$out .= '</ul>';
+				$classes .= ' collapsed';
+			}
+			switch($format) {
+			case 'S':
+				$season = $section_id.'/'.($section_id+1);
+				$out .= "<strong>Saison {$season}</strong>";
+				break;
+			case 'Y':
+				$out .= "<strong>{$section_id}</strong>";
+				break;
+			}
+			$out .= "<ul class='{$classes}'>";
+			$current_section = $section_id;
+		}
+		$linktext = '[['.$turnier->Name.']]';
+		$pOut = $parser->parse($linktext, $dummyTitle, $pOptions);
+		$out .= '<li>'.$pOut->mText.'</li>';
+	}
+	if ($current_section) {
+		// close last section
+		$out .= '</ul>';
+	}
+	return $out;
+}
+
 // Get total number of all (A), won (G), draw (U), or lost (V) games
 // Params:
 //   GUV - [GUV]
@@ -578,7 +641,14 @@ function uwr_stats($input) {
 			$players = explode(',', $uwr_stats_allParams['name']);
 			if (1 == count($players)) {
 				// single player stats
-				$output = getNumGoalsForPlayer($players[0], $SuchString);
+				$player = $players[0];
+				if ('Turniere' == $uwr_stats_allParams['target']) {
+					// if `Art' is not set, default should be NOT IN ('BUL', 'LL', '2BL', 'REL')
+					$SuchString = build_filter($DateA->format('Y-m-d'), $DateE->format('Y-m-d'));
+					$output = getListOfTournamentsForPlayer($player, $SuchString);
+				}
+				else
+					$output = getNumGoalsForPlayer($player, $SuchString);
 			} else {
 				// list of players
 				$output = getListOfGoalsForPlayers($players, $SuchString);
