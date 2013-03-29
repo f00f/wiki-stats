@@ -22,12 +22,16 @@ if ($edit==1)
 	if (!@$_POST['ID'] && @$_REQUEST['ID']) {
 		$_POST['ID'] = $_REQUEST['ID'];
 	}
-	echo "<font color='red'>Du bearbeitest das Spiel: ".$_POST["ID"]."</font>";
+	echo "<font color='red'>Du bearbeitest das Spiel mit der ID ".$_POST["ID"]."</font> (<a href='./'>abbrechen</a>)";
 
 	if (is_numeric($_POST["ID"]))
 	{
 		// Spieldaten laden
 		$sqlres = $sql->query("SELECT * FROM stats_games WHERE ID=".$_POST["ID"]);
+		if (mysql_num_rows($sqlres) != 1) {
+			print '<div class="error"><b>Fehler:</b> Spiel nicht gefunden. <a href="./">Zurück zur Liste</a></div>';
+			die();
+		}
 		$sqlobj = mysql_fetch_object($sqlres);
 
 		// TODO: in Model speichern, statt in $_POST
@@ -149,7 +153,7 @@ if ($submit==1||$submit==2)
 			Spezial='".$_POST['Spezial']."'".$SPupdate."
 			WHERE ID=".$_POST["ID"]);
    
-			echo "Spiel mit ID {$_POST['ID']} wurde geändert.";
+			echo "Das Spiel mit der ID {$_POST['ID']} wurde geändert.";
 		}
 	}
 }
@@ -231,6 +235,11 @@ foreach ($SpielerNamen as $i => $spieler)
 </form>
 </div>
 
+<?php
+if ($edit!=1):
+// liste aller spiele
+?>
+
 <br /><br />
 
 <!-- Edit form -->
@@ -265,16 +274,16 @@ Spieler hinzufügen:<br />
 $sqlres = $sql->query("SELECT * FROM stats_games ORDER BY Datum DESC, SpielNr DESC");
 
 $Ueberschrift=40;
-while ($sqlobj = mysql_fetch_object($sqlres))
+while ($match = mysql_fetch_object($sqlres))
 {
 	$Ueberschrift++;
 	if ($Ueberschrift>=40)
 	{
 		echo("<tr>");
-		echo("<td>ID</td><td width=100>Datum</td><td>Turnier</td><td>Gegner</td><td>Tore</td><td>Gegentore</td><td>Art</td><td width=150>Spezial</td>");
+		echo("<th>ID</th><th width=100>Datum</th><th>Turnier</th><th>Gegner</th><th>Tore</th><th>Gegentore</th><th>Art</th><th width=150>Spezial</th>");
 		foreach ($SpielerNamen as $i => $spieler)
 		{
-			echo "<td>".$spieler."</td>";
+			echo "<th>".$spieler."</th>";
 		}
 
 		echo("</tr>");
@@ -284,11 +293,11 @@ while ($sqlobj = mysql_fetch_object($sqlres))
 	$Tore = array();
 	foreach ($SpielerNamen as $i => $spieler)
 	{
-		array_push($Tore, $sqlobj->$spieler);
+		array_push($Tore, $match->$spieler);
 	}
 
 	echo("<tr>");
-	echo("<td>".$sqlobj->ID."</td><td>".$sqlobj->Datum."</td><td>".$sqlobj->Turnier."</td><td>".$sqlobj->Gegner."</td><td>".$sqlobj->Tore."</td><td>".$sqlobj->Gegentore."</td><td>".$sqlobj->Art."</td><td>".$sqlobj->Spezial."</td>");
+	echo("<td><a href='./?edit=1&ID={$match->ID}'>{$match->ID}</a></td><td>{$match->Datum}</td><td>{$match->Turnier}</td><td>{$match->Gegner}</td><td>{$match->Tore}</td><td>{$match->Gegentore}</td><td>{$match->Art}</td><td>{$match->Spezial}</td>");
 	foreach ($Tore as $i => $tore)
 	{
 		if ($tore==255)
@@ -302,4 +311,7 @@ while ($sqlobj = mysql_fetch_object($sqlres))
 @$sql->close();
 ?>
 </table>
+<?php
+endif; // $edit != 1
+?>
 </html>
