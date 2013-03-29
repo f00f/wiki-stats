@@ -138,7 +138,9 @@ function parseParams(&$input) {
 			}
 			break;
 		case 'art':
-			$allowedArt = array('LL', 'BUL', 'CC', 'DM');
+			$allowedArt = array('LL', '2BL', 'BUL', 'REL',
+								'JUN', 'JUG', 'BM', 'DM', 'CC',
+								'BOT', 'FT');
 			$uwr_stats_aArt = explode("+", $sArg);
 			foreach($uwr_stats_aArt as $ArtPruef) {
 				if (! (in_array($ArtPruef, $allowedArt) || is_numeric($ArtPruef)) ) {
@@ -424,8 +426,6 @@ function getListOfGesamtbilanz($SuchString){
 	$out = '<table class="prettytable sortable mw-collapsible mw-collapsed">';
 	$out .= '<tr><th>Gegner</th><th>Spiele</th><th>G</th><th>U</th><th>V</th><th class="unsortable">Tore</th><th class="unsortable">Höchster Sieg</th><th class="unsortable">Höchste Niederlage</th>';
 
-//$out ="{| class=\"prettytable sortable mw-collapsible mw-collapsed\"\n!Gegner\n!Spiele\n!G\n!U\n!V\n!class=\"unsortable\" | Tore\n!class=\"unsortable\" | Höchster Sieg\n!class=\"unsortable\" | Höchste Niederlage\n";
-
 	while ($row = mysql_fetch_object($sqlres))
 	{
 		$sqltempres = mysql_query("SELECT * FROM stats_games WHERE ".$SuchString." AND Gegner = '".$row->Gegner."'");
@@ -491,8 +491,8 @@ function getListOfGoalsForAllScorers($filter, $format) {
 
 // Get total number of all (A), won (G), draw (U), or lost (V) games
 // Params:
-// GUV - [GUV]
-// filter - SQL condition to filter stats table
+//   GUV - [GUV]
+//   filter - SQL condition to filter stats table
 function getNumGUVA($GUV, $filter) {
 	if ($GUV{0}=='A')
 		{$sqlres = mysql_query("SELECT COUNT(`ID`) AS 'COUNT' FROM `stats_games` WHERE {$filter}");}
@@ -584,7 +584,7 @@ function uwr_stats($input) {
 				$output = getListOfGoalsForPlayers($players, $SuchString);
 			}
 		}
-	} else { // Gesamt != name
+	} else { // Gesamt == name
 		// whole team stats
 		switch ($uwr_stats_allParams['target']) {
 		case 'Tore':
@@ -612,8 +612,6 @@ function uwr_stats($input) {
 	return $output;
 }
 
-
-
 // Mit Statistikwerten Rechnen
 function uwr_stats_r ($input) {
 	preg_match_all("#\((.*?)\)#s",$input,$matches, PREG_PATTERN_ORDER);
@@ -631,7 +629,10 @@ function uwr_stats_r ($input) {
 			if (is_numeric($p))
 				{$output = $p + 0;}
 			else
-				{$output = uwr_stats($p);$merk=1;}
+			{
+				$output = uwr_stats($p);
+				$merk=1;
+			}
 		}
 		else
 		{
@@ -640,23 +641,19 @@ function uwr_stats_r ($input) {
 			else
 				{$outputtemp2 = uwr_stats($p);}
 
-			if ($matches2[1][$key-1]== "-" || $matches2[1][$key-1]== "+" || $matches2[1][$key-1]== "*" || $matches2[1][$key-1]== "/") 
-			{
-			   switch ($matches2[1][$key-1]) {
-					case '-':
-					$output = $output - intval($outputtemp2);
-					break;
-					case '+':
-					$output = $output + intval($outputtemp2);
-					break;
-					case '*':
-					$output = $output * intval($outputtemp2);
-					break;
-					case '/':
-					$output = $output / intval($outputtemp2);
-					break;
-					}  
-			   
+			switch ($matches2[1][$key-1]) {
+			case '-':
+				$output = $output - intval($outputtemp2);
+				break;
+			case '+':
+				$output = $output + intval($outputtemp2);
+				break;
+			case '*':
+				$output = $output * intval($outputtemp2);
+				break;
+			case '/':
+				$output = $output / intval($outputtemp2);
+				break;
 			}
 		}
 		$i++;
