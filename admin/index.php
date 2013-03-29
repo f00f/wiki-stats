@@ -3,28 +3,34 @@ require_once "./sql.inc.php";
 $sql->db_connect();
 $fehler = 0;
 
-
-//$SpielerNamen = array("Nussi","Andi","Moritz","Luk","Felix","Nik","Hannes","Bela","Geza","Markus","Ardan","Veit","Lieven","Seb","Klemi","Jan","Mary","Flo","Oli","Olaf","Chrisi","Benni","Märtl","Manni","Michi","Sascha","Julia","Wölfels","Wenzel","Ariane","Lutscher","MSchottmüller","klFelix","Peter","MarkusL");
-
+// Spielernamen aus der Datenbank laden.
+// Für jeden Spieler gibt es eine Spalte, die ersten N Spalten beschreiben das Spiel.
 $res = $sql->query('DESCRIBE stats_games');
 mysql_data_seek($res,9);
 $SpielerNamen = array();
-while($row = mysql_fetch_array($res)) 
+while($row = mysql_fetch_array($res))
 {
 	array_push($SpielerNamen,$row['Field']);
 }
 
-$submit=@$_GET["submit"];
-$edit=@$_GET["edit"];
+$submit=@$_REQUEST["submit"];
+$edit=@$_REQUEST["edit"];
+
 //Editwerte prüfen
 if ($edit==1)
 {
-	echo "<font color=red>editieren des Eintrages: ".$_POST["ID"]."</font>";
+	if (!@$_POST['ID'] && @$_REQUEST['ID']) {
+		$_POST['ID'] = $_REQUEST['ID'];
+	}
+	echo "<font color='red'>Du bearbeitest das Spiel: ".$_POST["ID"]."</font>";
+
 	if (is_numeric($_POST["ID"]))
 	{
+		// Spieldaten laden
 		$sqlres = $sql->query("SELECT * FROM stats_games WHERE ID=".$_POST["ID"]);
 		$sqlobj = mysql_fetch_object($sqlres);
 
+		// TODO: in Model speichern, statt in $_POST
 		$_POST['Datum']=$sqlobj->Datum;
 		$_POST['SpielNr']=$sqlobj->SpielNr;
 		$_POST['Turnier']=$sqlobj->Turnier;
@@ -34,16 +40,10 @@ if ($edit==1)
 		$_POST['Art']=$sqlobj->Art;
 		$_POST['Spezial']=$sqlobj->Spezial;
   
-		foreach ($SpielerNamen as $i => $value) 
+		foreach ($SpielerNamen as $i => $spieler)
 		{
-			if ($sqlobj->$SpielerNamen[$i]!=255)
-			{
-				$_POST[$SpielerNamen[$i]]=$sqlobj->$SpielerNamen[$i];
-			}
-			else
-			{
-				$_POST[$SpielerNamen[$i]]="-";
-			}
+			$tore = $sqlobj->$spieler;
+			$_POST[$spieler] = (255 == $tore) ? "-" : $tore;
 		}
 
 		$fehler=1;
@@ -95,12 +95,13 @@ if ($submit==1||$submit==2)
 		echo("Spezial falsch<br />");
 	}
 
-	foreach ($SpielerNamen as $i => $value) 
+	foreach ($SpielerNamen as $i => $spieler)
 	{
-		if (!((is_numeric ($_POST[$SpielerNamen[$i]]) AND $_POST[$SpielerNamen[$i]] >= 0 AND $_POST[$SpielerNamen[$i]] <=255 ) OR $_POST[$SpielerNamen[$i]]=='-' OR $_POST[$SpielerNamen[$i]]==''))
+		$tore = @$_POST[$spieler];
+		if (!((is_numeric($tore) AND $tore >= 0 AND $tore <=255 ) OR $tore == '-' OR $tore == ''))
 		{
 			$fehler=1;
-			echo $SpielerNamen[$i]." falsch<br />";
+			echo $spieler." falsch<br />";
 		}
 	}
 //Werte überprüft
@@ -108,17 +109,15 @@ if ($submit==1||$submit==2)
 	if ($fehler!=1)
 	{
 		$SPNamen="";
-		$SPValue=""; 
-		foreach ($SpielerNamen as $i => $value) 
+		$SPValue="";
+		foreach ($SpielerNamen as $i => $spieler)
 		{
-			$SPNamen=$SPNamen." ,`".$SpielerNamen[$i]."`";
+			$tore = @$_POST[$spieler];
 
-			if ($_POST[$SpielerNamen[$i]] == "" OR $_POST[$SpielerNamen[$i]] == "-")
-			{$SPValue=$SPValue.",255";}
-			else
-			{$SPValue=$SPValue.",".$_POST[$SpielerNamen[$i]];}
+			$SPNamen .= ",`{$spieler}`";
+			$SPValue .= ',' . ($tore == "" OR $tore == "-") ? '255' : $tore;
 		}
-    
+
 // Werte eintragen 
 		if($submit==1)
 		{
@@ -131,12 +130,12 @@ if ($submit==1||$submit==2)
 		if($submit==2 && is_numeric($_POST["ID"]))
 		{
 			$SPupdate="";
-			foreach ($SpielerNamen as $i => $value) 
+			foreach ($SpielerNamen as $i => $spieler)
 			{
-				if ($_POST[str_replace(" ","_",$SpielerNamen[$i])] == "" OR $_POST[str_replace(" ","_",$SpielerNamen[$i])] == "-")
-				{$SPupdate=$SPupdate.",`".$SpielerNamen[$i]."`='255'";}
-				else
-				{$SPupdate=$SPupdate.",`".$SpielerNamen[$i]."`='".$_POST[str_replace(" ","_",$SpielerNamen[$i])]."'";}
+				$tore = $_POST[str_replace(" ","_",$spieler)];
+				$SPupdate .= ",`{$spieler}`='"
+							. ($tore == "" OR $tore == "-") ? "255" : $tore
+							. "'";
 			}
 
 			$sql->query("UPDATE stats_games
@@ -150,7 +149,7 @@ if ($submit==1||$submit==2)
 			Spezial='".$_POST['Spezial']."'".$SPupdate."
 			WHERE ID=".$_POST["ID"]);
    
-			echo ("Eintrag geändert ID:".$_POST["ID"]);
+			echo "Spiel mit ID {$_POST['ID']} wurde geändert.";
 		}
 	}
 }
@@ -158,83 +157,111 @@ if ($submit==1||$submit==2)
 <head>
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="cache-control" content="no-cache">
+<style>
+.fleft { float:left; }
+.box {
+	border: 2px solid #d3d3d3;
+	border-radius:3px;
+	padding:3px;
+	margin-right:10px;
+	}
+</style>
 </head>
 <html>
 
+<div class="box">
 <form action="index.php?submit=<?php print ($edit==1) ? "2" : "1"; ?>" method="post"> 
-<table border=1 width=1100><tr><td>
-
-<table><tr>
-<td>Datum</td><td>SpielNr</td><td>Turnier</td><td>Gegner</td><td>Tore</td><td>Gegentore</td><td>Art</td><td>Spezial</td>
+<table>
+<tr>
+<td>Datum</td><td><input name="Datum" type="text" size="10" maxlength="20" <?php print ($fehler==1) ? "value='{$_POST['Datum']}'" :"";?> /></td>
+<td>Turnier</td><td><input name="Turnier" type="text" size="30" maxlength="150" <?php print ($fehler==1) ? "value='{$_POST['Turnier']}'" :"";?> /></td>
+<td>Art</td>
+<td><input name="Art" type="text" size="10" maxlength="50" <?php print ($fehler==1) ? "value='{$_POST['Art']}'" :"";?> /></td>
+<td colspan="4"></td>
 </tr>
 <tr>
-<td><input name="Datum" type="text" size="10" maxlength="20" <?php print ($fehler==1) ? "value=\"".$_POST[Datum]."\"" :"";?>></td>
-<td><input name="SpielNr" type="text" size="5" maxlength="3" <?php print ($fehler==1) ? "value=\"".$_POST[SpielNr]."\"" :"";?>></td>
-<td><input name="Turnier" type="text" size="30" maxlength="150" <?php print ($fehler==1) ? "value=\"".$_POST[Turnier]."\"" :"";?>></td>
-<td><input name="Gegner" type="text" size="30" maxlength="100" <?php print ($fehler==1) ? "value=\"".$_POST[Gegner]."\"" :"";?>></td>
-<td><input name="Tore" type="text" size="6" maxlength="3" <?php print ($fehler==1) ? "value=\"".$_POST[Tore]."\"" :"";?>></td>
-<td><input name="Gegentore" type="text" size="6" maxlength="3" <?php print ($fehler==1) ? "value=\"".$_POST[Gegentore]."\"" :"";?>></td>
-<td><input name="Art" type="text" size="10" maxlength="50" <?php print ($fehler==1) ? "value=\"".$_POST[Art]."\"" :"";?>></td>
-<td><input name="Spezial" type="text" size="10" maxlength="50" <?php print ($fehler==1) ? "value=\"".$_POST[Spezial]."\"" :"";?>></td>
+<td>SpielNr</td><td><input name="SpielNr" type="text" size="5" maxlength="4" <?php print ($fehler==1) ? "value='{$_POST['SpielNr']}'" :"";?> /></td>
+<td>Gegner</td><td><input name="Gegner" type="text" size="30" maxlength="100" <?php print ($fehler==1) ? "value='{$_POST['Gegner']}'" :"";?> /></td>
+<td>Tore</td>
+<td><input name="Tore" type="text" size="6" maxlength="3" <?php print ($fehler==1) ? "value='{$_POST['Tore']}'" :"";?> /></td>
+<td>Gegentore</td>
+<td><input name="Gegentore" type="text" size="6" maxlength="3" <?php print ($fehler==1) ? "value='{$_POST['Gegentore']}'" :"";?> /></td>
+<td>Spezial</td>
+<td><input name="Spezial" type="text" size="10" maxlength="50" <?php print ($fehler==1) ? "value='{$_POST['Spezial']}'" :"";?> /></td>
+</tr>
+<tr>
+<td colspan="10">
+<small>
+Hinweise (bei <abbr title="Abkürzungen">Abk.</abbr> Mouse-Over):
+<u>Datum</u>: Format=yyyy-mm-dd;
+<u>Turnier</u>: Freitext;
+<u>Art</u>=[<abbr title="Landesliga">LL</abbr>|<abbr title="2. Bundesliga">2BL</abbr>|<abbr title="1. Bundesliga">BUL</abbr>|<abbr title="Bay. Meisterschaft">BM</abbr>|<abbr title="Dt. Meisterschaft">DM</abbr>|<abbr title="Champions Cup">CC</abbr>|<abbr title="Relegation">REL</abbr>|<abbr title="BOT / adh">BOT</abbr>|<abbr title="Jugend(-DM?)">JUG</abbr>|<abbr title="Junioren(-DM?)">JUN</abbr>|<abbr title="Freies Turnier">FT</abbr>];
+<u>SpielNr</u>: zur Sortierung;
+<u>Spezial</u>=[<abbr title="Overtime">OT</abbr>|<abbr title="Penalties">PEN</abbr>|<abbr title="Frozen Result">FR</abbr>].
+</small>
+</td>
 </tr>
 </table>
-
+<hr style="color:#d3d3d3;" />
 <table>
 <tr>
 <?php
-  foreach ($SpielerNamen as $i => $value) 
-   {
-    if ($fehler==1)
-    {$value="value=\"".$_POST[$SpielerNamen[$i]]."\"";}
-    echo ("<td>".$SpielerNamen[$i]."</td><td><input name=\"".$SpielerNamen[$i]."\" type=\"text\" size=\"5\" maxlength=\"3\" ".$value."></></td>");
-    if (($i+1)%9==0)
-     {echo ("</tr><tr>");}
-   }
-   
-   ?>
+$spieler_pro_zeile = 7;
+foreach ($SpielerNamen as $i => $spieler)
+{
+	$value = '';
+	if ($fehler==1)
+	{
+		$value=" value='{$_POST[$spieler]}'";
+	}
+	echo "<td><label for='tore-{$spieler}'>{$spieler}:</label></td>"
+		. "<td><input type='text' id='tore-{$spieler}' name='{$spieler}' size='5' maxlength='3'{$value} /></td>";
 
-
+	if (($i+1) % $spieler_pro_zeile == 0)
+	{
+		echo "</tr><tr>";
+	}
+}
+?>
+</tr>
 </table>
-<input type="submit" value=" Absenden "> <input type="button" value=" Abbrechen " onClick="window.location.href='index.php'">
-<input name="ID" type="text" size="10" maxlength="50" <?php print "value=\"".@$_POST["ID"]."\""?> style="visibility:hidden">
-
-
-</td></tr></table>
+<input type="submit" value=" Absenden " />
+<input type="button" value=" Abbrechen " onClick="window.location.href='index.php'" />
+<input type="hidden" name="ID" value="<?php print @$_POST["ID"]; ?>" />
 </form>
+</div>
+
 <br /><br />
 
-<?php //Edit?>
-<table><tr><td>
-<form action="index.php?edit=1" method="post"> 
-<table border=1 width=100><tr><td>
-
-ID: <input name="ID" type="text" size="10" maxlength="50"><br />
-<input type="submit" value=" editieren ">
-</td></tr></table>
+<!-- Edit form -->
+<div class="fleft box">
+<form action="./" method="get"> 
+<input type="hidden" name="edit" value="1" />
+Spiel-ID:<br />
+<input name="ID" type="text" size="10" maxlength="4" /><br />
+<input type="submit" value=" editieren " />
 </form>
-<?php //Edit?>
+</div>
+<!-- /Edit form -->
 
-</td><td>
-
-<?php //Add?>
-
-
+<!-- Add player form -->
+<div class="fleft box">
 <form action="./add_player.php" method="post" name="AddSP" onsubmit='return confirm("Neuen Spieler \""+AddName.value+"\" hinzufügen?")'>
-<table border=1 width=130><tr><td>
 <input type="hidden" name="Add" value="1" />
-Spieler hinzufügen: <input name="AddName" type="text" size="10" maxlength="50">
+Spieler hinzufügen:<br />
+<input name="AddName" type="text" size="10" maxlength="50">
 <input type="submit" value="hinzufügen" />
-</td></tr></table>
 </form>
+</div>
+<!-- /Add player form -->
 
-<?php //Add?>
-</td></tr></table>
-
-<br /><br /><br /><br /><br />
+<br style="clear:both;" />
+<br /><br />
 
 
 <table width=2000 border=1>
 <?php
+// Daten aller Spiele aus der Datenbank laden
 $sqlres = $sql->query("SELECT * FROM stats_games ORDER BY Datum DESC, SpielNr DESC");
 
 $Ueberschrift=40;
@@ -245,32 +272,32 @@ while ($sqlobj = mysql_fetch_object($sqlres))
 	{
 		echo("<tr>");
 		echo("<td>ID</td><td width=100>Datum</td><td>Turnier</td><td>Gegner</td><td>Tore</td><td>Gegentore</td><td>Art</td><td width=150>Spezial</td>");
-		foreach ($SpielerNamen as $i => $value) 
+		foreach ($SpielerNamen as $i => $spieler)
 		{
-			echo ("<td>".$SpielerNamen[$i]."</td>");
+			echo "<td>".$spieler."</td>";
 		}
 
 		echo("</tr>");
 		$Ueberschrift=0;
 	}
 
- //$Tore = array($sqlobj->Nussi,$sqlobj->Andi,$sqlobj->Moritz,$sqlobj->Luk,$sqlobj->Felix,$sqlobj->Nik,$sqlobj->Hannes,$sqlobj->Bela,$sqlobj->Geza,$sqlobj->Markus,$sqlobj->Ardan,$sqlobj->Veit,$sqlobj->Lieven,$sqlobj->Seb,$sqlobj->Klemi,$sqlobj->Jan,$sqlobj->Mary,$sqlobj->Flo,$sqlobj->Oli,$sqlobj->Olaf,$sqlobj->Chrisi,$sqlobj->Benni,$sqlobj->Märtl,$sqlobj->Manni,$sqlobj->Michi,$sqlobj->Sascha,$sqlobj->Julia,$sqlobj->Wölfels,$sqlobj->Wenzel,$sqlobj->Ariane,$sqlobj->Lutscher,$sqlobj->MSchottmüller,$sqlobj->klFelix,$sqlobj->Peter,$sqlobj->MarkusL);
-
 	$Tore = array();
-	foreach ($SpielerNamen as $i => $value) 
+	foreach ($SpielerNamen as $i => $spieler)
 	{
-		array_push($Tore,$sqlobj->$SpielerNamen[$i]);
+		array_push($Tore, $sqlobj->$spieler);
 	}
 
 	echo("<tr>");
 	echo("<td>".$sqlobj->ID."</td><td>".$sqlobj->Datum."</td><td>".$sqlobj->Turnier."</td><td>".$sqlobj->Gegner."</td><td>".$sqlobj->Tore."</td><td>".$sqlobj->Gegentore."</td><td>".$sqlobj->Art."</td><td>".$sqlobj->Spezial."</td>");
-	foreach ($Tore as $i => $value) 
+	foreach ($Tore as $i => $tore)
 	{
-		if ($Tore[$i]==255)
-		{$Tore[$i]="-";}
-		echo("<td>".$Tore[$i]."</td>");   
+		if ($tore==255)
+		{
+			$tore="-";
+		}
+		echo "<td>".$tore."</td>";
 	}
-	echo("<tr>");   
+	echo "<tr>";
 }
 @$sql->close();
 ?>
