@@ -508,9 +508,6 @@ function getListOfTournamentsForPlayer($player, $filter, $format='S') {
 		return "Fehler: Keine Turniere gefunden.";
 	}
 
-	$parser = new Parser();
-	$dummyTitle = new Title('');
-	$pOptions = new ParserOptions();
 	$out = '';
 	$current_section = '';
 	foreach($res as $turnier)
@@ -542,15 +539,17 @@ function getListOfTournamentsForPlayer($player, $filter, $format='S') {
 			$out .= "<ul class='{$classes}'>";
 			$current_section = $section_id;
 		}
-		$linktext = '[['.$turnier->Name.']]';
-		$pOut = $parser->parse($linktext, $dummyTitle, $pOptions);
-		$out .= '<li>'.$pOut->mText.'</li>';
+		$out .= '<li>[['.$turnier->Name.']]</li>';
 	}
 	if ($current_section) {
 		// close last section
 		$out .= '</ul>';
 	}
-	return $out;
+	$parser = new Parser();
+	$dummyTitle = new Title('');
+	$pOptions = new ParserOptions();
+	$pOut = $parser->parse($out, $dummyTitle, $pOptions);
+	return $pOut->mText;
 }
 
 // Get total number of all (A), won (G), draw (U), or lost (V) games
