@@ -46,6 +46,9 @@ TODO:
 # to activate the extension, include it from your LocalSettings.php
 # with: include("extensions/UWRStats/UWRStats.php");
 
+// load config values
+require_once 'config.inc.php';
+
 $wgExtensionFunctions[] = "wfStats";
 $wgExtensionCredits['parserhook'][] = array(
        'path' => __FILE__,
@@ -55,9 +58,6 @@ $wgExtensionCredits['parserhook'][] = array(
        'description' => 'Verschiedene Statistikfunktionen, siehe z.B. Torschützenliste der [[1. Bundesliga Süd 2011/2012]]',
        'version'  => UWR_STATS_VERSION,
        );
-
-// load config values
-require_once 'config.inc.php';
 
 function wfStats() {
 	global $wgParser;
