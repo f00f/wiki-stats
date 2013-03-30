@@ -21,7 +21,8 @@
  *       "gesamtbilanz" - Ewige Gesamtbilanz wird als Tabelle ausgegeben   
  * target - was soll angezeigt werden?
  *       Moegliche Werte: "Gewonnen", "Verloren", "Unentschieden",
- *                        "Tore", "Gegentore", "SerieG", "SerieV", "All"
+ *                        "Tore", "Gegentore", "SerieG", "SerieV", "All",
+ *                        "Turniere"
  * art - welche Wettkaempfe sollen beruecksichtigt werden?
  *       nicht gesetzt -> alle
  *       "LL", "BUL", "CC", "DM", ..., oder die Spiel-ID
