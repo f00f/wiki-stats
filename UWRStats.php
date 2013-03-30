@@ -386,7 +386,7 @@ function getListOfGoalsForPlayers(&$players, $filter, $excludeZero = false, $exc
 			$out .= "<tr>"
 				. "<td>{$p}</td>"
 				. "<td style='text-align:center;'>{$g}</td>"
-				. "<td style='text-align:center;'>".number_format ($listOfGoalsG[$p], 2, ',', '')."</td>"
+				. "<td style='text-align:center;'>".number_format($listOfGoalsG[$p], 2, ',', '')."</td>"
 				. "</tr>";
 		}
 		$out .= '</table>';
@@ -499,16 +499,20 @@ function getListOfGoalsForAllScorers($filter, $format) {
 }
 
 // Create list of all tournaments a player has played
-//   player - player name
+//   player - player name ['Gesamt' or `false' means ALL]
 //   filter - SQL condition to filter stats table
 //   format - 'S'=grouped by season 'Y'=grouped by year
 function getListOfTournamentsForPlayer($player, $filter, $format='S') {
+	if ($player && $player != 'Gesamt') {
+		$filter = "`{$player}` != 255 AND {$filter}";
+	}
+
 	$dbr = wfGetDB( DB_SLAVE );
 	$res = $dbr->select('`stats_games`',
 		array("DISTINCT CONCAT(`Turnier`, ' ', YEAR(`Datum`)) AS `Name`",
 			'YEAR(`Datum`) AS `Jahr`',
 			'`Datum`'),
-		"`{$player}` != 255 AND {$filter}",
+		$filter,
 		__METHOD__,
 		array('GROUP BY' => '`Name`',
 			'ORDER BY' => '`Datum` DESC')
@@ -636,18 +640,23 @@ function uwr_stats($input) {
 
 	// build output
 	if ("Gesamt" != $uwr_stats_allParams['name']) {
-		if ('torschuetzen' == $uwr_stats_allParams['name'] || 'torschuetzenS' == $uwr_stats_allParams['name'] || 'torschuetzenG' == $uwr_stats_allParams['name'] || 'mitspieler' == $uwr_stats_allParams['name'] || 'gesamtbilanz' == $uwr_stats_allParams['name']) {
-			if ('torschuetzen' == $uwr_stats_allParams['name'])
-				{$output = getListOfGoalsForAllScorers($SuchString,'N');}
-			if ('torschuetzenS' == $uwr_stats_allParams['name'])
-				{$output = getListOfGoalsForAllScorers($SuchString,'S');}
-			if ('torschuetzenG' == $uwr_stats_allParams['name'])
-				{$output = getListOfGoalsForAllScorers($SuchString,'G');}
-			if ('mitspieler' == $uwr_stats_allParams['name'])
-				{$output = getListOfGoalsForAllScorers($SuchString,'M');}
-			if ('gesamtbilanz' == $uwr_stats_allParams['name'])
-				{$output = getListOfGesamtbilanz($SuchString);}  //doofes Englisch
-		} else {
+		switch($uwr_stats_allParams['name']) {
+		case 'torschuetzen':
+			$output = getListOfGoalsForAllScorers($SuchString,'N');
+			break;
+		case 'torschuetzenS':
+			$output = getListOfGoalsForAllScorers($SuchString,'S');
+			break;
+		case 'torschuetzenG':
+			$output = getListOfGoalsForAllScorers($SuchString,'G');
+			break;
+		case 'mitspieler':
+			$output = getListOfGoalsForAllScorers($SuchString,'M');
+			break;
+		case 'gesamtbilanz':
+			$output = getListOfGesamtbilanz($SuchString);  //doofes Englisch
+			break;
+		default:
 			$players = explode(',', $uwr_stats_allParams['name']);
 			if (1 == count($players)) {
 				// single player stats
@@ -663,6 +672,7 @@ function uwr_stats($input) {
 				// list of players
 				$output = getListOfGoalsForPlayers($players, $SuchString);
 			}
+			break;
 		}
 	} else { // Gesamt == name
 		// whole team stats
@@ -682,6 +692,11 @@ function uwr_stats($input) {
 			break;
 		case 'SerieV':
 			$output = getSeriesLost($SuchString);
+			break;
+		case 'Turniere':
+			// if `Art' is not set, default should be NOT IN ('BUL', 'LL', '2BL', 'REL')
+			$SuchString = build_filter($DateA->format('Y-m-d'), $DateE->format('Y-m-d'));
+			$output = getListOfTournamentsForPlayer(false, $SuchString);
 			break;
 		}
 	}
