@@ -53,7 +53,7 @@ $wgExtensionCredits['parserhook'][] = array(
        'author' =>'[[User:Nik|le Nique dangereux]] und [[User:Hannes|f00f]]',
        'url' => 'http://ba.uwr1.de/',
        'description' => 'Verschiedene Statistikfunktionen, siehe z.B. Torschützenliste der [[1. Bundesliga Süd 2011/2012]]',
-       'version'  => 1.2,
+       'version'  => UWR_STATS_VERSION,
        );
 
 // load config values
