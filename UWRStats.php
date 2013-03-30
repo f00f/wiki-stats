@@ -1,7 +1,7 @@
 <?php
 /** Statistik-Erweiterung fuer Mediawiki.
  *
- * Entwickelt von le Nique dangereux
+ * Entwickelt von le Nique dangereux und f00f
  *
  * Verwendung:
  * <stats>
@@ -36,23 +36,33 @@
  *       Bsp.: Saison 2011/2012 -> saison=2011
  */
 
+/*
+TODO:
+- `art' negierbar machen, z.B.: art=! BM
+- `order' zum sortieren (chrono und anti-chrono)
+- saison=alle
+*/
+
 # to activate the extension, include it from your LocalSettings.php
-# with: include("extensions/YourExtensionName.php");
+# with: include("extensions/UWRStats/UWRStats.php");
 
 $wgExtensionFunctions[] = "wfStats";
 $wgExtensionCredits['parserhook'][] = array(
        'path' => __FILE__,
-       'name' => 'UWR_Stats',
+       'name' => 'UWRStats',
        'author' =>'[[User:Nik|le Nique dangereux]] und [[User:Hannes|f00f]]',
        'url' => 'http://ba.uwr1.de/',
        'description' => 'Verschiedene Statistikfunktionen, siehe z.B. Torschützenliste der [[1. Bundesliga Süd 2011/2012]]',
        'version'  => 1.2,
        );
+
+// load config values
+require_once 'config.inc.php';
+
 function wfStats() {
 	global $wgParser;
 	$wgParser->setHook( "stats", "uwr_stats_r" );
 }
-define('NUM_NONPLAYER_COLS', 9); //< number of columns at the beginning which are not player scores
 
 // fetch player names from database schema
 function getPlayerNamesFromDB() {

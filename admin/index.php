@@ -1,8 +1,11 @@
 <?php
+// database wrapper class
 require_once "./sql.inc.php";
+// load config values
+require_once '../config.inc.php';
+
 $sql->db_connect();
 $fehler = 0;
-define('NUM_NONPLAYER_COLS', 9); //< number of columns at the beginning which are not player scores
 
 // Spielernamen aus der Datenbank laden.
 // Für jeden Spieler gibt es eine Spalte, die ersten N Spalten beschreiben das Spiel.
