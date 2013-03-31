@@ -285,7 +285,8 @@ Spieler hinzufügen:<br />
 
 <!-- Link zu Liste aller Spiele -->
 <div class="fleft box">
-<a href="./games_list.php">Liste aller Spiele</a>
+<a href="./games_list.php">Liste aller Spiele</a><br />
+<a href="./tournaments_list.php">Liste aller Turniere</a>
 </div>
 <!-- /Link zu Liste aller Spiele -->
 <br style="clear:both;" />

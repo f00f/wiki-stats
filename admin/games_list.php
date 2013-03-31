@@ -9,8 +9,8 @@ require_once "./games.inc.php";
 
 require_once "./tmpl_header.inc.php";
 ?>
-<h4>Alle Spiele</h4>
 <a class="tab" href="./">Zurück zur Startseite</a>
+<h4>Alle Spiele</h4>
 <?php
 $sql->db_connect();
 $SpielerNamen = players_FindAll();
