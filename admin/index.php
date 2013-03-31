@@ -51,7 +51,7 @@ if ($edit==1)
 		foreach ($SpielerNamen as $i => $spieler)
 		{
 			$tore = $sqlobj->$spieler;
-			$_POST[$spieler] = (255 == $tore) ? "-" : $tore;
+			$_POST[$spieler] = ((255 == $tore) ? "-" : $tore);
 		}
 
 		$fehler=1;
@@ -123,7 +123,7 @@ if ($submit==1||$submit==2)
 			$tore = @$_POST[$spieler];
 
 			$SPNamen .= ",`{$spieler}`";
-			$SPValue .= ',' . ($tore == "" OR $tore == "-") ? '255' : $tore;
+			$SPValue .= ',' . (($tore == "" OR $tore == "-") ? '255' : $tore);
 		}
 
 // Werte eintragen 
@@ -140,13 +140,12 @@ if ($submit==1||$submit==2)
 			$SPupdate="";
 			foreach ($SpielerNamen as $i => $spieler)
 			{
-				$tore = $_POST[str_replace(" ","_",$spieler)];
+				$tore = @$_POST[str_replace(' ', '_', $spieler)];
 				$SPupdate .= ",`{$spieler}`='"
-							. ($tore == "" OR $tore == "-") ? "255" : $tore
+							. (($tore == "" OR $tore == "-") ? "255" : $tore)
 							. "'";
 			}
-
-			$sql->query("UPDATE stats_games
+			$q = "UPDATE stats_games
 			SET Datum='".$_POST['Datum']."', 
 			SpielNr='".$_POST['SpielNr']."', 
 			Turnier='".$_POST['Turnier']."',
@@ -155,7 +154,8 @@ if ($submit==1||$submit==2)
 			Gegentore='".$_POST['Gegentore']."', 
 			Art='".$_POST['Art']."', 
 			Spezial='".$_POST['Spezial']."'".$SPupdate."
-			WHERE ID=".$_POST["ID"]);
+			WHERE ID=".$_POST["ID"];
+			$sql->query($q);
    
 			echo "Das Spiel mit der ID {$_POST['ID']} wurde geändert.";
 		}
