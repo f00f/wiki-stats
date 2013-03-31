@@ -64,4 +64,4 @@ class my_Sql_cl {
 $sql   = new my_Sql_cl;
 
 // configure database connection
-require_once './db_config.inc.php';
+require_once 'db_config.inc.php';
