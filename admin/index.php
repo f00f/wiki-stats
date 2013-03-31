@@ -65,42 +65,42 @@ if ($submit==1||$submit==2)
 	if (! preg_match ("!^(19|20)\d\d[- /.](0[1-9]|1[012])[- /.](0[1-9]|[12][0-9]|3[01])$!", $_POST['Datum']))
 	{
 		$fehler=1;
-		echo("Datum falsch<br />");
+		echo 'Ungültiger Wert für "Datum".<br />';
 	}
 	if (! (is_numeric ( $_POST['SpielNr'] ) AND $_POST['SpielNr'] >= 0 AND $_POST['SpielNr'] <=255))
 	{
 		$fehler=1;
-		echo("SpielNr falsch<br />");
+		echo 'Ungültiger Wert für "SpielNr".<br />';
 	}
 	if (strlen ( $_POST['Turnier'] )>150 OR strlen ( $_POST['Turnier'] ) == 0)
 	{
 		$fehler=1;
-		echo("Turnier falsch<br />");
+		echo 'Ungültiger Wert für "Turnier".<br />';
 	}
 	if (strlen ( $_POST['Gegner'] )>100 OR strlen ( $_POST['Gegner'] ) == 0)
 	{
 		$fehler=1;
-		echo("Gegner falsch<br />");
+		echo 'Ungültiger Wert für "Gegner".<br />';
 	}
 	if (! (is_numeric ($_POST['Tore']) AND $_POST['Tore'] >= 0 AND $_POST['Tore'] <=255))
 	{
 		$fehler=1;
-		echo("Tore falsch<br />");
+		echo 'Ungültiger Wert für "Tore".<br />';
 	}
 	if (!(is_numeric ($_POST['Gegentore'])AND $_POST['Gegentore'] >= 0 AND $_POST['Gegentore'] <=255))
 	{
 		$fehler=1;
-		echo("Gegentore falsch<br />");
+		echo 'Ungültiger Wert für "Gegentore".<br />';
 	}
 	if (strlen ( $_POST['Art'] )>50 OR strlen ( $_POST['Art'] ) == 0)
 	{
 		$fehler=1;
-		echo("Art falsch<br />");
+		echo 'Ungültiger Wert für "Art".<br />';
 	}
 	if (strlen ( $_POST['Spezial'] )>50)
 	{
 		$fehler=1;
-		echo("Spezial falsch<br />");
+		echo 'Ungültiger Wert für "Spezial".<br />';
 	}
 
 	foreach ($SpielerNamen as $i => $spieler)
@@ -109,7 +109,7 @@ if ($submit==1||$submit==2)
 		if (!((is_numeric($tore) AND $tore >= 0 AND $tore <=255 ) OR $tore == '-' OR $tore == ''))
 		{
 			$fehler=1;
-			echo $spieler." falsch<br />";
+			echo "Ungültiger Wert für {$spieler}<br />";
 		}
 	}
 //Werte überprüft
@@ -131,7 +131,9 @@ if ($submit==1||$submit==2)
 		{
 			$sql->query("INSERT INTO stats_games (Datum, SpielNr, Turnier, Gegner, Tore, Gegentore, Art, Spezial".$SPNamen.")
 					VALUES ('".$_POST['Datum']."',".$_POST['SpielNr'].", '".mysql_real_escape_string($_POST['Turnier'])."', '".mysql_real_escape_string($_POST['Gegner'])."',".$_POST['Tore'].",".$_POST['Gegentore'].", '".mysql_real_escape_string($_POST['Art'])."', '".mysql_real_escape_string($_POST['Spezial'])."'".$SPValue.")");
-			echo ("Neuen Eintrag angelegt");
+			echo "Neues Spiel eingetragen.";
+			// TODO: store tournament values and players in SESSION.
+			// TODO: pre-fill form from SESSION values.
 		}
 
 // Werte ändern 
@@ -202,8 +204,8 @@ if ($submit==1||$submit==2)
 <small>
 Hinweise (bei <abbr title="Abkürzungen">Abk.</abbr> Mouse-Over):
 <u>Datum</u>: Format=yyyy-mm-dd;
-<u>Turnier</u>: Freitext;
-<u>Art</u>=[<abbr title="Landesliga">LL</abbr>|<abbr title="2. Bundesliga">2BL</abbr>|<abbr title="1. Bundesliga">BUL</abbr>|<abbr title="Bay. Meisterschaft">BM</abbr>|<abbr title="Dt. Meisterschaft">DM</abbr>|<abbr title="Champions Cup">CC</abbr>|<abbr title="Relegation">REL</abbr>|<abbr title="BOT / adh">BOT</abbr>|<abbr title="Jugend(-DM?)">JUG</abbr>|<abbr title="Junioren(-DM?)">JUN</abbr>|<abbr title="Freies Turnier">FT</abbr>];
+<u>Turnier</u>: Turniername, Freitext;
+<u>Art</u>: Wettkampftyp=[<abbr title="Landesliga">LL</abbr>|<abbr title="2. Bundesliga">2BL</abbr>|<abbr title="1. Bundesliga">BUL</abbr>|<abbr title="Bay. Meisterschaft">BM</abbr>|<abbr title="Dt. Meisterschaft">DM</abbr>|<abbr title="Champions Cup">CC</abbr>|<abbr title="Relegation">REL</abbr>|<abbr title="BOT / adh">BOT</abbr>|<abbr title="Jugend(-DM?)">JUG</abbr>|<abbr title="Junioren(-DM?)">JUN</abbr>|<abbr title="Freies Turnier">FT</abbr>];
 <u>SpielNr</u>: zur Sortierung;
 <u>Spezial</u>=[<abbr title="Overtime">OT</abbr>|<abbr title="Penalties">PEN</abbr>|<abbr title="Frozen Result">FR</abbr>].
 </small>
