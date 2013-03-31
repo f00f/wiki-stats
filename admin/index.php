@@ -282,7 +282,7 @@ if ($edit!=1):
 
 <!-- Add player form -->
 <div class="fleft box">
-<form action="./add_player.php" method="post" name="AddSP" onsubmit='return confirm("Neuen Spieler \""+AddName.value+"\" hinzufügen?")'>
+<form action="./players_add.php" method="post" name="AddSP" onsubmit='return confirm("Neuen Spieler \""+AddName.value+"\" hinzufügen?")'>
 <input type="hidden" name="Add" value="1" />
 Spieler hinzufügen:<br />
 <input name="AddName" type="text" size="10" maxlength="50">
