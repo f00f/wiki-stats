@@ -1,13 +1,14 @@
 <?php
 // database wrapper class
-require_once "./sql.inc.php";
+require_once "./inc/sql.inc.php";
 // load config values
 require_once '../config.inc.php';
 
-require_once "./tournaments.inc.php";
+require_once "./inc/tournaments.inc.php";
 
-require_once "./tmpl_header.inc.php";
+require_once "./inc/tmpl_header.inc.php";
 
+// read options
 $groupYears = false;
 if (@$_GET['groupYears']) {
 	$groupYears = $_GET['groupYears'];
@@ -37,6 +38,5 @@ if (0 == count($tournaments)) {
 	print '</ul>';
 }
 ?>
-
 </body>
 </html>

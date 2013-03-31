@@ -1,13 +1,14 @@
 <?php
-require_once "./sql.inc.php";
-$sql->db_connect();
+require_once "./inc/sql.inc.php";
 
 //SpielerHinzufügen
 if (@$_REQUEST['Add'] == "1" AND @$_REQUEST['AddName'])
 {
+	$sql->db_connect();
 	$sql->query("ALTER TABLE `stats_games`
 		ADD `{$_REQUEST['AddName']}` TINYINT
 		UNSIGNED NOT NULL DEFAULT '255'");
+	$sql->close();
 }
 //SpielerHinzufügen
 
