@@ -4,23 +4,15 @@ require_once "./sql.inc.php";
 // load config values
 require_once '../config.inc.php';
 
-// In $_POST, escaped player names are used as array indices.
-function escape_spielername($spieler) {
-	return str_replace(' ', '_', $spieler);
-}
+require_once "./players.inc.php";
+require_once "./games.inc.php";
+
+require_once "./tmpl_header.inc.php";
 
 $sql->db_connect();
 $fehler = 0;
 
-// Spielernamen aus der Datenbank laden.
-// Für jeden Spieler gibt es eine Spalte, die ersten N Spalten beschreiben das Spiel.
-$res = $sql->query('DESCRIBE stats_games');
-mysql_data_seek($res, NUM_NONPLAYER_COLS);
-$SpielerNamen = array();
-while($row = mysql_fetch_array($res))
-{
-	array_push($SpielerNamen, $row['Field']);
-}
+$SpielerNamen = players_FindAll();
 
 $submit=@$_REQUEST["submit"];
 $edit=@$_REQUEST["edit"];
@@ -36,6 +28,14 @@ if ($edit==1)
 	if (is_numeric($_POST["ID"]))
 	{
 		// Spieldaten laden
+		/*
+		$match = new MatchModel($sql)
+		$match->FindByID($_POST['ID']);
+		if (!$match)
+		{
+			print $
+		}
+		*/
 		$sqlres = $sql->query("SELECT * FROM stats_games WHERE ID=".$_POST["ID"]);
 		if (mysql_num_rows($sqlres) != 1) {
 			print '<div class="error"><b>Fehler:</b> Spiel nicht gefunden. <a href="./">Zurück zur Liste</a></div>';
@@ -56,17 +56,17 @@ if ($edit==1)
 		foreach ($SpielerNamen as $i => $spieler)
 		{
 			$tore = $sqlobj->$spieler;
-			$_POST[escape_spielername($spieler)] = ((255 == $tore) ? "-" : $tore);
+			$_POST[players_EscapeName($spieler)] = ((255 == $tore) ? "-" : $tore);
 		}
 
-		$fehler=1;
+		$fehler=1; // setting $fehler=1 will pre-fill the form with the values in $_POST
 	}
 }
 //Editwerte prüfen
 
-//Werte überprüfen
 if ($submit==1||$submit==2)
 { 
+	//Werte überprüfen
 	if (! preg_match ("!^(19|20)\d\d[- /.](0[1-9]|1[012])[- /.](0[1-9]|[12][0-9]|3[01])$!", $_POST['Datum']))
 	{
 		$fehler=1;
@@ -110,30 +110,30 @@ if ($submit==1||$submit==2)
 
 	foreach ($SpielerNamen as $i => $spieler)
 	{
-		$tore = @$_POST[escape_spielername($spieler)];
+		$tore = @$_POST[players_EscapeName($spieler)];
 		if (!((is_numeric($tore) AND $tore >= 0 AND $tore <=255 ) OR $tore == '-' OR $tore == ''))
 		{
 			$fehler=1;
 			echo "Ungültiger Wert für {$spieler}<br />";
 		}
 	}
-//Werte überprüft
+	//Werte überprüft
 
 	if ($fehler!=1)
 	{
-		$SPNamen="";
-		$SPValue="";
-		foreach ($SpielerNamen as $i => $spieler)
-		{
-			$tore = @$_POST[escape_spielername($spieler)];
-
-			$SPNamen .= ",`{$spieler}`";
-			$SPValue .= ',' . (($tore == "" OR $tore == "-") ? '255' : $tore);
-		}
-
-// Werte eintragen 
+		// Ein neues Spiel eintragen 
 		if($submit==1)
 		{
+			$SPNamen="";
+			$SPValue="";
+			foreach ($SpielerNamen as $i => $spieler)
+			{
+				$tore = @$_POST[players_EscapeName($spieler)];
+
+				$SPNamen .= ",`{$spieler}`";
+				$SPValue .= ',' . (($tore == "" OR $tore == "-") ? '255' : $tore);
+			}
+
 			$sql->query("INSERT INTO stats_games (Datum, SpielNr, Turnier, Gegner, Tore, Gegentore, Art, Spezial".$SPNamen.")
 					VALUES ('".$_POST['Datum']."',".$_POST['SpielNr'].", '".mysql_real_escape_string($_POST['Turnier'])."', '".mysql_real_escape_string($_POST['Gegner'])."',".$_POST['Tore'].",".$_POST['Gegentore'].", '".mysql_real_escape_string($_POST['Art'])."', '".mysql_real_escape_string($_POST['Spezial'])."'".$SPValue.")");
 			echo "Neues Spiel eingetragen.";
@@ -151,7 +151,7 @@ if ($submit==1||$submit==2)
 			$active_player_ids = array();
 			foreach ($SpielerNamen as $i => $spieler)
 			{
-				$s_esc = escape_spielername($spieler);
+				$s_esc = players_EscapeName($spieler);
 				if (isset($_POST[$s_esc]) && is_numeric($_POST[$s_esc])) {
 					$active_player_ids[] = $i;
 					$active_players[] = $spieler;
@@ -165,13 +165,13 @@ if ($submit==1||$submit==2)
 			$SpielerNamen = array_merge($active_players, $SpielerNamen);
 		}
 
-// Werte ändern 
+		// Ein Spiel ändern 
 		if($submit==2 && is_numeric($_POST["ID"]))
 		{
 			$SPupdate="";
 			foreach ($SpielerNamen as $i => $spieler)
 			{
-				$tore = @$_POST[escape_spielername($spieler)];
+				$tore = @$_POST[players_EscapeName($spieler)];
 				$SPupdate .= ",`{$spieler}`='"
 							. (($tore == "" OR $tore == "-") ? "255" : $tore)
 							. "'";
@@ -193,21 +193,7 @@ if ($submit==1||$submit==2)
 	}
 }
 ?>
-<head>
-<meta http-equiv="content-type" content="text/html; charset=UTF-8">
-<meta http-equiv="cache-control" content="no-cache">
-<style>
-.fleft { float:left; }
-.box {
-	border: 2px solid #d3d3d3;
-	border-radius:3px;
-	padding:3px;
-	margin-right:10px;
-	}
-</style>
-</head>
-<html>
-
+<h4>Spiel eintragen / bearbeiten</h4>
 <div class="box">
 <form action="index.php?submit=<?php print ($edit==1) ? "2" : "1"; ?>" method="post"> 
 <table>
@@ -253,7 +239,7 @@ foreach ($SpielerNamen as $i => $spieler)
 	$value = '';
 	if ($fehler==1)
 	{
-		$spieler_escaped = escape_spielername($spieler);
+		$spieler_escaped = players_EscapeName($spieler);
 		$value=" value='{$_POST[$spieler_escaped]}'";
 	}
 	echo "<td><label for='tore-{$spieler}'>{$spieler}:</label></td>"
@@ -278,8 +264,14 @@ if ($edit!=1):
 // liste aller spiele
 ?>
 
-<br /><br />
+<h4>Letzte 10 Spiele</h4>
+<?php
+$games = games_FindLatest(10);
+require_once './tmpl_games_list.inc.php';
+$sql->close();
+?>
 
+<h4>Weitere Funktionen</h4>
 <!-- Add player form -->
 <div class="fleft box">
 <form action="./players_add.php" method="post" name="AddSP" onsubmit='return confirm("Neuen Spieler \""+AddName.value+"\" hinzufügen?")'>
@@ -291,54 +283,15 @@ Spieler hinzufügen:<br />
 </div>
 <!-- /Add player form -->
 
+<!-- Link zu Liste aller Spiele -->
+<div class="fleft box">
+<a href="./games_list.php">Liste aller Spiele</a>
+</div>
+<!-- /Link zu Liste aller Spiele -->
 <br style="clear:both;" />
-<br /><br />
 
-
-<table width=2000 border=1>
-<?php
-// Daten aller Spiele aus der Datenbank laden
-$sqlres = $sql->query("SELECT * FROM `stats_games` ORDER BY `Datum` DESC, `SpielNr` DESC");
-
-$Ueberschrift=40;
-while ($match = mysql_fetch_object($sqlres))
-{
-	$Ueberschrift++;
-	if ($Ueberschrift>=40)
-	{
-		echo("<tr>");
-		echo("<th>ID</th><th width=100>Datum</th><th>Turnier</th><th>Gegner</th><th>Tore</th><th>Gegentore</th><th>Art</th><th width=150>Spezial</th>");
-		foreach ($SpielerNamen as $i => $spieler)
-		{
-			echo "<th>".$spieler."</th>";
-		}
-
-		echo("</tr>");
-		$Ueberschrift=0;
-	}
-
-	$Tore = array();
-	foreach ($SpielerNamen as $i => $spieler)
-	{
-		array_push($Tore, $match->$spieler);
-	}
-
-	echo("<tr>");
-	echo("<td><a href='./?edit=1&ID={$match->ID}'>{$match->ID}</a></td><td>{$match->Datum}</td><td>{$match->Turnier}</td><td>{$match->Gegner}</td><td>{$match->Tore}</td><td>{$match->Gegentore}</td><td>{$match->Art}</td><td>{$match->Spezial}</td>");
-	foreach ($Tore as $i => $tore)
-	{
-		if ($tore==255)
-		{
-			$tore="-";
-		}
-		echo "<td>".$tore."</td>";
-	}
-	echo "<tr>";
-}
-@$sql->close();
-?>
-</table>
 <?php
 endif; // $edit != 1
 ?>
+</body>
 </html>
