@@ -28,34 +28,25 @@ if ($edit==1)
 	if (is_numeric($_POST["ID"]))
 	{
 		// Spieldaten laden
-		/*
-		$match = new MatchModel($sql)
-		$match->FindByID($_POST['ID']);
-		if (!$match)
-		{
-			print $
-		}
-		*/
-		$sqlres = $sql->query("SELECT * FROM stats_games WHERE ID=".$_POST["ID"]);
-		if (mysql_num_rows($sqlres) != 1) {
+		$game = games_FindByID($_POST['ID']);
+		if (false === $game) {
 			print '<div class="error"><b>Fehler:</b> Spiel nicht gefunden. <a href="./">Zurück zur Liste</a></div>';
 			die();
 		}
-		$sqlobj = mysql_fetch_object($sqlres);
 
 		// TODO: in Model speichern, statt in $_POST
-		$_POST['Datum']=$sqlobj->Datum;
-		$_POST['SpielNr']=$sqlobj->SpielNr;
-		$_POST['Turnier']=$sqlobj->Turnier;
-		$_POST['Gegner']=$sqlobj->Gegner;
-		$_POST['Tore']=$sqlobj->Tore;
-		$_POST['Gegentore']=$sqlobj->Gegentore;
-		$_POST['Art']=$sqlobj->Art;
-		$_POST['Spezial']=$sqlobj->Spezial;
+		$_POST['Datum']=$game->Datum;
+		$_POST['SpielNr']=$game->SpielNr;
+		$_POST['Turnier']=$game->Turnier;
+		$_POST['Gegner']=$game->Gegner;
+		$_POST['Tore']=$game->Tore;
+		$_POST['Gegentore']=$game->Gegentore;
+		$_POST['Art']=$game->Art;
+		$_POST['Spezial']=$game->Spezial;
   
 		foreach ($SpielerNamen as $i => $spieler)
 		{
-			$tore = $sqlobj->$spieler;
+			$tore = $game->$spieler;
 			$_POST[players_EscapeName($spieler)] = ((255 == $tore) ? "-" : $tore);
 		}
 
@@ -208,13 +199,13 @@ if ($submit==1||$submit==2)
 <td>SpielNr</td>
 <td><input name="SpielNr" type="text" size="5" maxlength="4" <?php if ($fehler==1) { print "value='{$_POST['SpielNr']}'"; };?> /></td>
 <td>Gegner</td>
-<td><input name="Gegner" type="text" size="30" maxlength="100" <?php if ($fehler==1 && @$_POST['Gegner']) { print "value='{$_POST['Gegner']}'"; };?> /></td>
+<td><input name="Gegner" type="text" size="30" maxlength="100" <?php if ($fehler==1 && isset($_POST['Gegner'])) { print "value='{$_POST['Gegner']}'"; };?> /></td>
 <td>Tore</td>
-<td><input name="Tore" type="text" size="6" maxlength="3" <?php if ($fehler==1 && @$_POST['Tore']) { print "value='{$_POST['Tore']}'"; };?> /></td>
+<td><input name="Tore" type="text" size="6" maxlength="3" <?php if ($fehler==1 && isset($_POST['Tore'])) { print "value='{$_POST['Tore']}'"; };?> /></td>
 <td>Gegentore</td>
-<td><input name="Gegentore" type="text" size="6" maxlength="3" <?php if ($fehler==1 && @$_POST['Gegentore']) { print "value='{$_POST['Gegentore']}'"; };?> /></td>
+<td><input name="Gegentore" type="text" size="6" maxlength="3" <?php if ($fehler==1 && isset($_POST['Gegentore'])) { print "value='{$_POST['Gegentore']}'"; };?> /></td>
 <td>Spezial</td>
-<td><input name="Spezial" type="text" size="10" maxlength="50" <?php if ($fehler==1 && @$_POST['Spezial']) { print "value='{$_POST['Spezial']}'"; };?> /></td>
+<td><input name="Spezial" type="text" size="10" maxlength="50" <?php if ($fehler==1 && isset($_POST['Spezial'])) { print "value='{$_POST['Spezial']}'"; };?> /></td>
 </tr>
 <tr>
 <td colspan="10">
