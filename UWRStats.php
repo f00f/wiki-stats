@@ -368,7 +368,7 @@ function getListOfGoalsForPlayers(&$players, $filter, $excludeZero = false, $exc
 	if ($format=='N')
 	{
 		$out = '<table class="prettytable sortable">';
-		$out .= '<tr><th>Name</th><th>Tore</th>';
+		$out .= '<tr><th>Name</th><th>Tore</th></tr>';
 		foreach ($listOfGoals as $p => $g) {
 			$out .= "<tr>"
 				. "<td>{$p}</td>"
@@ -381,7 +381,7 @@ function getListOfGoalsForPlayers(&$players, $filter, $excludeZero = false, $exc
 	if ($format=='G')
 	{
 		$out = '<table class="prettytable sortable mw-collapsible mw-collapsed">';
-		$out .= '<tr><th>Name</th><th>Tore</th><th>Tore (gewichtet)</th>';
+		$out .= '<tr><th>Name</th><th>Tore</th><th>Tore (gewichtet)</th></tr>';
 		foreach ($listOfGoals as $p => $g) {
 			$out .= "<tr>"
 				. "<td>{$p}</td>"
@@ -433,7 +433,7 @@ function getListOfGesamtbilanz($SuchString){
 	$AnzahlUnentschieden=0;
 
 	$out = '<table class="prettytable sortable mw-collapsible mw-collapsed">';
-	$out .= '<tr><th>Gegner</th><th>Spiele</th><th>G</th><th>U</th><th>V</th><th class="unsortable">Tore</th><th class="unsortable">Höchster Sieg</th><th class="unsortable">Höchste Niederlage</th>';
+	$out .= '<tr><th>Gegner</th><th>Spiele</th><th>G</th><th>U</th><th>V</th><th class="unsortable">Tore</th><th class="unsortable">Höchster Sieg</th><th class="unsortable">Höchste Niederlage</th></tr>';
 
 	while ($row = mysql_fetch_object($sqlres))
 	{
