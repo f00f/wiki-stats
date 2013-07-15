@@ -411,7 +411,7 @@ function getListOfGoalsForPlayers(&$players, $filter, $excludeZero = false, $exc
 				{$out.=", ";}
 			$out .= "{$p}";
 		}
-  	}	
+  	}
 	
 	return $out;
 }
@@ -646,6 +646,42 @@ function uwr_stats($input) {
 			break;
 		case 'torschuetzenS':
 			$output = getListOfGoalsForAllScorers($SuchString,'S');
+
+			// one individual game
+			if (isset($uwr_stats_aArt) && count($uwr_stats_aArt) == 1 && is_numeric($uwr_stats_aArt[0]))
+			{
+				// load game data
+				$res = mysql_query("SELECT * FROM `stats_games` WHERE {$SuchString}");
+				$row = mysql_fetch_array($res);
+				mysql_free_result($res);
+				$totalGoals = $row['Tore'];//$row[5];
+
+				if (!$totalGoals) {
+					$output .= '<i>keine</i>';
+				} else {
+					$num_rows = count($row) / 2; // both, assoc and numbered array!
+
+					$accountedGoals = 0;
+					for ($c = NUM_NONPLAYER_COLS; $c < $num_rows; $c++)
+					{
+						$g = $row[$c];
+						if ($g != 255)
+							$accountedGoals += $g;
+					}
+					$mrxGoals = $totalGoals - $accountedGoals;
+					if ($mrxGoals > 0) {
+						$mrx = '';
+						if ($output) {
+							$mrx = ", ";
+						}
+						$mrx .= 'Mr. X';
+						if ($mrxGoals > 1) {
+							$mrx .= " {$mrxGoals}";
+						}
+						$output .= $mrx;
+					}
+				}
+			}
 			break;
 		case 'torschuetzenG':
 			$output = getListOfGoalsForAllScorers($SuchString,'G');
