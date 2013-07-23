@@ -14,6 +14,9 @@
 .tab {
 	background: #f0f0f0;
 	}
+.mrx {
+	background: #f0b0b0;
+	}
 </style>
 </head>
 <body>

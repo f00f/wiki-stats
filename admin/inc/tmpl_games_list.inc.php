@@ -12,7 +12,7 @@ foreach ($games as $game)
 	if ($Ueberschrift>=40)
 	{
 		echo "<tr>";
-		echo "<th>ID</th><th width=100>Datum</th><th>Turnier</th><th>Gegner</th><th>Tore</th><th>Gegentore</th><th>Art</th><th width=150>Spezial</th>";
+		echo "<th>ID</th><th width=100>Datum</th><th>Turnier</th><th>Gegner</th><th>Tore</th><th>Gegentore</th><th>Art</th><th width=150>Spezial</th><th>Mr.&nbsp;X</th>";
 		foreach ($SpielerNamen as $i => $spieler)
 		{
 			echo "<th>".$spieler."</th>";
@@ -27,17 +27,31 @@ foreach ($games as $game)
 	{
 		array_push($Tore, $game->$spieler);
 	}
-
-	echo "<tr>";
-	echo "<td><a href='./?edit=1&ID={$game->ID}'>{$game->ID}</a></td><td>{$game->Datum}</td><td>{$game->Turnier}</td><td>{$game->Gegner}</td><td>{$game->Tore}</td><td>{$game->Gegentore}</td><td>{$game->Art}</td><td>{$game->Spezial}</td>";
+	$NichtVergebeneTore = $game->Tore;
+	$VergebeneTore = '';
 	foreach ($Tore as $i => $tore)
 	{
 		if ($tore==255)
 		{
 			$tore="-";
 		}
-		echo "<td>".$tore."</td>";
+		else
+		{
+			$NichtVergebeneTore -= $tore;
+		}
+		$VergebeneTore .= "<td>{$tore}</td>";
 	}
+	$MrXClass = ' class="mrx"';
+	if (!$NichtVergebeneTore)
+	{
+		$MrXClass = '';
+		$NichtVergebeneTore = '-';
+	}
+
+	echo "<tr>";
+	echo "<td><a href='./?edit=1&ID={$game->ID}'>{$game->ID}</a></td><td>{$game->Datum}</td><td>{$game->Turnier}</td><td>{$game->Gegner}</td><td>{$game->Tore}</td><td>{$game->Gegentore}</td><td>{$game->Art}</td><td>{$game->Spezial}</td>";
+	echo "<td{$MrXClass}>{$NichtVergebeneTore}</td>";
+	echo $VergebeneTore;
 	echo "<tr>";
 }
 ?>
