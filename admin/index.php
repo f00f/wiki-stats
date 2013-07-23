@@ -44,11 +44,23 @@ if ($edit==1)
 		$_POST['Art']=$game->Art;
 		$_POST['Spezial']=$game->Spezial;
   
+		$active_players = array();
+		$active_player_ids = array();
 		foreach ($SpielerNamen as $i => $spieler)
 		{
 			$tore = $game->$spieler;
-			$_POST[players_EscapeName($spieler)] = ((255 == $tore) ? "-" : $tore);
+			$s_esc = players_EscapeName($spieler);
+			$_POST[$s_esc] = ((255 == $tore) ? "-" : $tore);
+			if (isset($_POST[$s_esc]) && is_numeric($_POST[$s_esc])) {
+				$active_player_ids[] = $i;
+				$active_players[] = $spieler;
+			}
 		}
+		// remove active players from the list to add them later at its beginning.
+		foreach($active_player_ids as $i) {
+			unset($SpielerNamen[$i]);
+		}
+		$SpielerNamen = array_merge($active_players, $SpielerNamen);
 
 		$fehler=1; // setting $fehler=1 will pre-fill the form with the values in $_POST
 	}
@@ -149,7 +161,7 @@ if ($submit==1||$submit==2)
 					$_POST[$s_esc] = 0;
 				}
 			}
-			// move active players to beginning of list.
+			// remove active players from the list to add them later at its beginning.
 			foreach($active_player_ids as $i) {
 				unset($SpielerNamen[$i]);
 			}
