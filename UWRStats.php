@@ -510,8 +510,9 @@ function getListOfTournamentsForPlayer($player, $filter, $format='S') {
 	$dbr = wfGetDB( DB_SLAVE );
 	$res = $dbr->select('`stats_games`',
 		array("DISTINCT CONCAT(`Turnier`, ' ', YEAR(`Datum`)) AS `Name`",
-			'YEAR(`Datum`) AS `Jahr`',
-			'`Datum`'),
+			' YEAR(`Datum`) AS `Jahr`',
+			' `Datum`',
+			' `Art`'),
 		$filter,
 		__METHOD__,
 		array('GROUP BY' => '`Name`',
@@ -553,7 +554,41 @@ function getListOfTournamentsForPlayer($player, $filter, $format='S') {
 			$out .= "<ul class='{$classes}'>";
 			$current_section = $section_id;
 		}
-		$out .= '<li>[['.$turnier->Name.']]</li>';
+		$link = $turnier->Name;
+		$linkTitle = '';
+		switch ($turnier->Art) {
+		case 'BM':
+			$link = 'Bayerische Meisterschaft '.$turnier->Jahr;
+			if ($turnier->Name != $turnier->Art . ' ' . $turnier->Jahr) {
+				$linkTitle = $turnier->Name;
+			}
+			break;
+		case 'LP':
+			$link = 'Länderpokal '.$turnier->Jahr;
+			if ($turnier->Name != $turnier->Art . ' ' . $turnier->Jahr) {
+				$linkTitle = $turnier->Name;
+			}
+			break;
+		case 'DM':
+			$link = 'Deutsche Meisterschaft '.$turnier->Jahr;
+			if ($turnier->Name != $turnier->Art . ' ' . $turnier->Jahr) {
+				$linkTitle = $turnier->Name;
+			}
+			break;
+		case 'CC':
+			$link = 'Champions Cup '.$turnier->Jahr;
+			if ($turnier->Name != $turnier->Art . ' ' . $turnier->Jahr) {
+				$linkTitle = $turnier->Name;
+			}
+			break;
+		case 'BUL':
+			$link = '1. Bundesliga Süd '.$turnier->Jahr.'/'.($turnier->Jahr + 1);
+			if ($turnier->Name != '1. BL ' . $turnier->Jahr) {
+				$linkTitle = $turnier->Name;
+			}
+			break;
+		}
+		$out .= '<li>[['.$link.($linkTitle ? '|'.$linkTitle : '').']]</li>';
 	}
 	if ($current_section) {
 		// close last section
