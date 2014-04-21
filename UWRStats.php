@@ -67,9 +67,11 @@ function wfStats() {
 // fetch player names from database schema
 function getPlayerNamesFromDB() {
 	$allNames = array();
-	$res = mysql_query('DESCRIBE `stats_games`');
-	mysql_data_seek($res, NUM_NONPLAYER_COLS); // skip data columns
-	while($row = mysql_fetch_array($res)) {
+	$dbr = wfGetDB(DB_SLAVE);
+	$sql = 'DESCRIBE `stats_games`';
+	$res = $dbr->query($sql);
+	$res->seek(NUM_NONPLAYER_COLS); // skip data columns
+	while($row = $res->fetchRow()) {
 		$allNames[] = $row['Field'];
 	}
 	return $allNames;
@@ -102,7 +104,7 @@ function parseParams(&$input) {
 	foreach($aParams as $sParam) {
 		$aParam = explode("=", $sParam, 2); // ie $aParam[0] = 'website' and $aParam[1] = 'http://www.whatever.com'
 		if( count( $aParam ) < 2 ) // no arguments passed
-		continue;
+			continue;
 
 		$sType = strtolower(trim($aParam[0])); // ie 'website'
 		$sArg = trim($aParam[1]); // ie 'http://www.whatever.com'
@@ -119,7 +121,7 @@ function parseParams(&$input) {
 			break;
 		case 'saison':
 			$test = (int) $sArg;
-			if ($test > 1900 AND $test < 2200) {
+			if ($test > 1900 && $test < 2200) {
 				$uwr_stats_allParams[$sType] = $sArg;
 			}
 			break;
@@ -179,15 +181,12 @@ function build_filter($from, $to) {
 
 	// filter by tournament-type
 	if (isset($uwr_stats_aArt) && count($uwr_stats_aArt) > 0) {
-		if (is_numeric($uwr_stats_aArt[0]))
-		{
+		if (is_numeric($uwr_stats_aArt[0])) {
 			// individual game(s)
 			$filter .= " AND (`ID`='"
 					. implode("' OR `ID`='", $uwr_stats_aArt)
 					. "') ";
-		}
-		else
-		{
+		} else {
 			$filter .= " AND (`Art`='"
 						. implode("' OR `Art`='", $uwr_stats_aArt)
 						. "') ";
@@ -217,8 +216,10 @@ function build_filter($from, $to) {
 function getNumGoals($type, $filter) {
 	$sum = 0;
 	// TODO: geht "SELECT SUM(`{$type}`) AS 'SUM' FROM `stats_games` WHERE {$filter}"
-	$sqlres = mysql_query("SELECT `{$type}` FROM `stats_games` WHERE {$filter}");
-	while ($row = mysql_fetch_assoc($sqlres)) {
+	$dbr = wfGetDB(DB_SLAVE);
+	$sql = "SELECT `{$type}` FROM `stats_games` WHERE {$filter}";
+	$res = $dbr->query($sql);
+	while ($row = $res->fetchRow()) {
 		$sum += $row[ $type ];
 	}
 	return $sum;
@@ -226,13 +227,15 @@ function getNumGoals($type, $filter) {
 
 // find longest series of conseq. wins
 function getSeriesWon($filter) {
-	$sqlres = mysql_query("SELECT * FROM `stats_games` WHERE {$filter}"
-						. " ORDER BY `Datum` DESC, `SpielNr` DESC");
+	$dbr = wfGetDB(DB_SLAVE);
+	$sql = "SELECT * FROM `stats_games` WHERE {$filter}"
+			. " ORDER BY `Datum` DESC, `SpielNr` DESC";
+	$res = $dbr->query($sql);
 	$AktuelleSiegSerie=0;
 	$LaengsteSiegSerie=0;
 	$LaengsteSiegSerieMerker=0;
-	while ($sqlobj =  mysql_fetch_object($sqlres)) {
-		if ($sqlobj->Tore > $sqlobj->Gegentore AND $AktBeendet==0) {
+	while ($sqlobj =  $res->fetchObject()) {
+		if ($sqlobj->Tore > $sqlobj->Gegentore && $AktBeendet==0) {
 			$AktuelleSiegSerie++;
 		}
 
@@ -254,12 +257,14 @@ function getSeriesWon($filter) {
 
 // find longest series of conseq. defeats
 function getSeriesLost($filter) {
-	$sqlres = mysql_query("SELECT * FROM `stats_games` WHERE {$filter}"
-						. " ORDER BY `Datum` DESC, `SpielNr` DESC");
+	$dbr = wfGetDB(DB_SLAVE);
+	$sql = "SELECT * FROM `stats_games` WHERE {$filter}"
+			. " ORDER BY `Datum` DESC, `SpielNr` DESC";
+	$res = $dbr->query($sql);
 	$LaengsteNiederlageSerie=0;
 	$LaengsteNiederlageSerieMerker=0;
 
-	while ($sqlobj =  mysql_fetch_object($sqlres)) {
+	while ($sqlobj = $res->fetchObject()) {
 		if ($sqlobj->Tore < $sqlobj->Gegentore) {
 			$LaengsteNiederlageSerieMerker++;
 		}
@@ -280,32 +285,18 @@ function getSeriesLost($filter) {
 //   player - player name
 //   filter - SQL condition to filter stats table
 function getNumGoalsForPlayer($player, $filter) {
-	$sqlres = mysql_query("SELECT COUNT(`ID`) AS 'COUNT', SUM(`{$player}`) AS 'SUM' FROM `stats_games` "
-						. "WHERE `{$player}` <> 255 AND {$filter}");
-	if (mysql_num_rows($sqlres) < 1) {
+	$dbr = wfGetDB(DB_SLAVE);
+	$sql = "SELECT COUNT(`ID`) AS 'COUNT', SUM(`{$player}`) AS 'SUM' FROM `stats_games` "
+			. "WHERE `{$player}` <> 255 AND {$filter}";
+	$res = $dbr->query($sql);
+	if ($res->numRows() < 1) {
 		return "-";
 	}
-	$row = mysql_fetch_assoc($sqlres);
+	$row = $res->fetchRow();
 	if ($row['COUNT'] < 1) {
 		return "-";
 	}
 	return $row['SUM'];
-	/*
-	// old implementation
-	$sum = 0;
-	$sqlres = mysql_query("SELECT * FROM `stats_games` WHERE {$filter}");
-	$Merker = FALSE;
-	while ($sqlobj = mysql_fetch_object($sqlres)) {
-		if ($sqlobj->$player != 255) {
-			$sum += $sqlobj->$player;
-			$Merker = TRUE;
-		}
-	}
-	if (! $Merker) {
-		return "-";
-	}
-	return $sum;
-	*/
 }
 
 // Get number of goals for a given player, weighted by number of goals in each game.
@@ -315,10 +306,13 @@ function getNumGoalsForPlayer($player, $filter) {
 function getNumGoalsForPlayerG($player, $filter) {
 	$Tore = 0;
 
-	$relevant_matches = mysql_query("SELECT `ID` FROM `stats_games` WHERE {$filter}");
-	while ($match = mysql_fetch_object($relevant_matches)) {
-		$match_data_res = mysql_query("SELECT `Tore`, `{$player}` FROM `stats_games` WHERE `ID` = {$match->ID}");
-		$match_data =  mysql_fetch_object($match_data_res);
+	$dbr = wfGetDB(DB_SLAVE);
+	$sql = "SELECT `ID` FROM `stats_games` WHERE {$filter}";
+	$relevant_matches = $dbr->query($sql);
+	while ($match = $relevant_matches->fetchObject()) {
+		$sql = "SELECT `Tore`, `{$player}` FROM `stats_games` WHERE `ID` = {$match->ID}";
+		$match_data_res = $dbr->query($sql);
+		$match_data = $match_data_res->fetchObject();
 		if (0 != $match_data->Tore && 255 != $match_data->$player)
 		{
 			$Tore += ($match_data->$player/($match_data->Tore));
@@ -418,61 +412,60 @@ function getListOfGoalsForPlayers(&$players, $filter, $excludeZero = false, $exc
 
 
 // Erstelle Liste (prettytable) Gesamtbilanz
-function getListOfGesamtbilanz($SuchString){
-	$sqlres = mysql_query("SELECT * FROM stats_games WHERE ".$SuchString." GROUP BY Gegner ORDER BY Gegner");
-	if (mysql_num_rows($sqlres) < 1) {
+function getListOfGesamtbilanz($SuchString) {
+	$dbr = wfGetDB(DB_SLAVE);
+	$sql = "SELECT * FROM stats_games WHERE ".$SuchString." GROUP BY Gegner ORDER BY Gegner";
+	$res = $dbr->query($sql);
+
+	if ($res->numRows() < 1) {
 		return "-";
 	}
 	$out="";
 	$AnzahlSpiele=0;
 	$AnzahlGewonnen=0;
-	$GesTore=0;$GesGegenTore=0;
-	$hSieg=0;$hSiegT=0;$hSiegG=0;
+	$GesTore=0; $GesGegenTore=0;
+	$hSieg=0; $hSiegT=0; $hSiegG=0;
 	$AnzahlVerloren=0;
-	$hVer=0;$hVerT=0;$hVerG=0;
+	$hVer=0; $hVerT=0; $hVerG=0;
 	$AnzahlUnentschieden=0;
 
 	$out = '<table class="prettytable sortable mw-collapsible mw-collapsed">';
 	$out .= '<tr><th>Gegner</th><th>Spiele</th><th>G</th><th>U</th><th>V</th><th class="unsortable">Tore</th><th class="unsortable">Höchster Sieg</th><th class="unsortable">Höchste Niederlage</th></tr>';
 
-	while ($row = mysql_fetch_object($sqlres))
-	{
-		$sqltempres = mysql_query("SELECT * FROM stats_games WHERE ".$SuchString." AND Gegner = '".$row->Gegner."'");
-		while ($rowtemp = mysql_fetch_object($sqltempres))
-		{
-			$GesTore=$GesTore+$rowtemp->Tore;
-			$GesGegenTore=$GesGegenTore+$rowtemp->Gegentore;
+	while ($row = $res->fetchObject()) {
+		$sql = "SELECT * FROM stats_games WHERE ".$SuchString." AND Gegner = '".$row->Gegner."'";
+		$tempres = $dbr->query($sql);
+		while ($rowtemp = $tempres->fetchObject()) {
+			$GesTore = $GesTore + $rowtemp->Tore;
+			$GesGegenTore = $GesGegenTore + $rowtemp->Gegentore;
 			$AnzahlSpiele++;
-			if ($rowtemp->Tore>$rowtemp->Gegentore)
-			{
+			if ($rowtemp->Tore > $rowtemp->Gegentore) {
 				$AnzahlGewonnen++;
-				if($hSieg<$rowtemp->Tore-$rowtemp->Gegentore)
-				{
-					$hSieg=$rowtemp->Tore-$rowtemp->Gegentore;
-					$hSiegT=$rowtemp->Tore;
-					$hSiegG=$rowtemp->Gegentore;
+				if($hSieg < $rowtemp->Tore - $rowtemp->Gegentore) {
+					$hSieg = $rowtemp->Tore - $rowtemp->Gegentore;
+					$hSiegT = $rowtemp->Tore;
+					$hSiegG = $rowtemp->Gegentore;
 				}
 			}
-			if ($rowtemp->Tore<$rowtemp->Gegentore)
-			{
+			if ($rowtemp->Tore < $rowtemp->Gegentore) {
 				$AnzahlVerloren++;
-				if($hVer<$rowtemp->Gegentore-$rowtemp->Tore)
-				{
-					$hVer=$rowtemp->Gegentore-$rowtemp->Tore;
-					$hVerT=$rowtemp->Tore;
-					$hVerG=$rowtemp->Gegentore;
+				if($hVer < $rowtemp->Gegentore - $rowtemp->Tore) {
+					$hVer = $rowtemp->Gegentore - $rowtemp->Tore;
+					$hVerT = $rowtemp->Tore;
+					$hVerG = $rowtemp->Gegentore;
 				}
 			}
-			if ($rowtemp->Tore==$rowtemp->Gegentore)
-				{$AnzahlUnentschieden++;}
+			if ($rowtemp->Tore == $rowtemp->Gegentore) {
+				$AnzahlUnentschieden++;
+			}
 		}
 		
 		$out .= "<tr><td>".$row->Gegner."</td><td>".$AnzahlSpiele."</td><td>".$AnzahlGewonnen."</td><td>".$AnzahlUnentschieden."</td><td>".$AnzahlVerloren."</td><td>".$GesTore.":".$GesGegenTore."</td><td>";
 		if ($hSieg!=0)
-			{$out .= $hSiegT.":".$hSiegG;}
+			{$out .= $hSiegT . ":" . $hSiegG;}
 		$out .="</td><td>";
 		if ($hVer!=0)
-			{$out .=$hVerT.":".$hVerG;}
+			{$out .= $hVerT . ":" . $hVerG;}
 		$out .="</td></tr>";
 
 		$AnzahlSpiele=0;
@@ -507,7 +500,7 @@ function getListOfTournamentsForPlayer($player, $filter, $format='S') {
 		$filter = "`{$player}` != 255 AND {$filter}";
 	}
 
-	$dbr = wfGetDB( DB_SLAVE );
+	$dbr = wfGetDB(DB_SLAVE);
 	$res = $dbr->select('`stats_games`',
 		array("DISTINCT CONCAT(`Turnier`, ' ', YEAR(`Datum`)) AS `Name`",
 			' YEAR(`Datum`) AS `Jahr`',
@@ -606,19 +599,23 @@ function getListOfTournamentsForPlayer($player, $filter, $format='S') {
 //   GUV - [GUV]
 //   filter - SQL condition to filter stats table
 function getNumGUVA($GUV, $filter) {
+	$dbr = wfGetDB(DB_SLAVE);
 	if ($GUV{0}=='A')
-		{$sqlres = mysql_query("SELECT COUNT(`ID`) AS 'COUNT' FROM `stats_games` WHERE {$filter}");}
+	{
+		$sql = "SELECT COUNT(`ID`) AS 'COUNT' FROM `stats_games` WHERE {$filter}";
+	}
 	else
 	{
 		$ops = array('G' => '>', 'U' => '=', 'V' => '<');
 		$op = $ops[ $GUV{0} ]; // consider only first char
-		$sqlres = mysql_query("SELECT COUNT(`ID`) AS 'COUNT' FROM `stats_games` "
-								. "WHERE `Tore` {$op} `Gegentore` AND {$filter}");
+		$sql = "SELECT COUNT(`ID`) AS 'COUNT' FROM `stats_games` "
+				. "WHERE `Tore` {$op} `Gegentore` AND {$filter}";
 	}
-	if (mysql_num_rows($sqlres) < 1) {
+	$res = $dbr->query($sql);
+	if ($res->numRows() < 1) {
 		return '-';
 	}
-	$row = mysql_fetch_assoc($sqlres);
+	$row = $res->fetchRow();
 	return $row['COUNT'];
 }
 
@@ -686,9 +683,11 @@ function uwr_stats($input) {
 			if (isset($uwr_stats_aArt) && count($uwr_stats_aArt) == 1 && is_numeric($uwr_stats_aArt[0]))
 			{
 				// load game data
-				$res = mysql_query("SELECT * FROM `stats_games` WHERE {$SuchString}");
-				$row = mysql_fetch_array($res);
-				mysql_free_result($res);
+				$dbr = wfGetDB(DB_SLAVE);
+				$sql = "SELECT * FROM `stats_games` WHERE {$SuchString}";
+				$res = $dbr->query($sql);
+				$row = $res->fetchRow();
+				$res->free();
 				$totalGoals = $row['Tore'];//$row[5];
 
 				if (!$totalGoals) {
